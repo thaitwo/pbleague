@@ -11,7 +11,9 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   retries: 0,
-  reporter: [["list"]],
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }]]
+    : [["list"]],
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -24,5 +26,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
+  globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
 });
