@@ -15,7 +15,11 @@ export type Database = ReturnType<typeof createDb>;
 const globalForDb = globalThis as unknown as { db?: Database };
 
 function createDb() {
-  return drizzle(postgres(process.env.DATABASE_URL!), { schema });
+  // prepare: false is required for connection poolers in transaction mode
+  // (e.g. Neon's pooled endpoint / PgBouncer), and is harmless otherwise.
+  return drizzle(postgres(process.env.DATABASE_URL!, { prepare: false }), {
+    schema,
+  });
 }
 
 export const db = globalForDb.db ?? (globalForDb.db = createDb());
