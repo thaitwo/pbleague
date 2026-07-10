@@ -69,6 +69,30 @@ local admin account (`test@example.com` / `password123`). Coverage (`e2e/`):
 Note: while running these tests serially, close the port-3002 dev server first
 (both are `next dev` on the same `.next`).
 
+## Deployment (Vercel + Neon)
+
+1. **Import the repo** into Vercel (New Project → pick `pbleague`). The first
+   build will fail until the env vars below exist — that's expected.
+2. **Add a Neon Postgres** database (Vercel dashboard → Storage → Create →
+   Neon, or the Marketplace). Connecting it sets `DATABASE_URL` automatically.
+3. **Set env vars** (Project → Settings → Environment Variables):
+   - `BETTER_AUTH_SECRET` — a 32-byte random string (`openssl rand -base64 32`)
+   - `BETTER_AUTH_URL` — your deployed URL, e.g. `https://pbleague.vercel.app`
+   - `APP_URL` — same URL (used for links in emails)
+   - Optional: `RESEND_API_KEY` + `EMAIL_FROM` (real emails), `CRON_SECRET`
+4. **Redeploy** (Deployments → ⋯ → Redeploy).
+5. **Create the schema** on Neon — from your machine, using Neon's **direct**
+   (unpooled) connection string:
+   ```bash
+   DATABASE_URL='<neon-direct-url>' npm run db:push
+   ```
+6. **Make yourself an admin** — sign up on the live site, then:
+   ```bash
+   DATABASE_URL='<neon-direct-url>' npm run make-admin -- you@example.com
+   ```
+
+The daily score auto-confirm cron (`vercel.json`) runs automatically once deployed.
+
 ## Build status
 
 - ✅ Phase 1 — foundation: auth (sign-up/sign-in/sign-out), player profiles, full DB schema, route protection, admin role
