@@ -1,0 +1,182 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { autoConfirmStaleScores } from "@/db/mutations";
+import { getLeaguePublic, type MatchView } from "@/db/queries";
+import { formatDateTime } from "@/lib/format";
+
+function fmtDiff(n: number) {
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
+function resultLine(m: MatchView) {
+  const homeGames = m.games.filter((g) => g.homeScore > g.awayScore).length;
+  const awayGames = m.games.filter((g) => g.awayScore > g.homeScore).length;
+  const homeWon = homeGames > awayGames;
+  const winner = homeWon ? m.homeTeamName : m.awayTeamName;
+  const loser = homeWon ? m.awayTeamName : m.homeTeamName;
+  const line = m.games
+    .map((g) =>
+      homeWon
+        ? `${g.homeScore}–${g.awayScore}`
+        : `${g.awayScore}–${g.homeScore}`,
+    )
+    .join(", ");
+  return `${winner} def. ${loser} (${line})`;
+}
+
+export default async function LeagueStandingsPage({
+  params,
+}: {
+  params: Promise<{ leagueId: string }>;
+}) {
+  const { leagueId } = await params;
+  await autoConfirmStaleScores();
+  const data = await getLeaguePublic(leagueId);
+  if (!data) notFound();
+
+  const { league, standings, recent, upcoming } = data;
+  const anyPlayed = standings.some((r) => r.played > 0);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <Link
+          href="/leagues"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← All leagues
+        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">Level {league.skillLevel}</Badge>
+            {league.status === "completed" && (
+              <Badge variant="secondary">Completed</Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Standings</CardTitle>
+          <CardDescription>
+            {anyPlayed
+              ? "Ranked by wins, then head-to-head, game win %, and point differential."
+              : "No matches have been played yet."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {standings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No teams in this league yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-2 font-medium">#</th>
+                    <th className="py-2 pr-2 font-medium">Team</th>
+                    <th className="py-2 pr-2 text-right font-medium">W</th>
+                    <th className="py-2 pr-2 text-right font-medium">L</th>
+                    <th className="py-2 pr-2 text-right font-medium">Games</th>
+                    <th className="py-2 pr-2 text-right font-medium">Diff</th>
+                    <th className="py-2 pr-2 text-right font-medium">Streak</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((r, i) => (
+                    <tr key={r.teamId} className="border-b last:border-0">
+                      <td className="py-2 pr-2 text-muted-foreground">
+                        {i + 1}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <Link
+                          href={`/teams/${r.teamId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {r.teamName}
+                        </Link>
+                      </td>
+                      <td className="py-2 pr-2 text-right">{r.wins}</td>
+                      <td className="py-2 pr-2 text-right">{r.losses}</td>
+                      <td className="py-2 pr-2 text-right text-muted-foreground">
+                        {r.gamesWon}–{r.gamesLost}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-muted-foreground">
+                        {fmtDiff(r.pointDiff)}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-muted-foreground">
+                        {r.streak}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recent.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No results yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-2 text-sm">
+                {recent.map((m) => (
+                  <li key={m.id} className="border-b pb-2 last:border-0">
+                    <div>{resultLine(m)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDateTime(m.scheduledAt)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Upcoming</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing scheduled yet.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2 text-sm">
+                {upcoming.map((m) => (
+                  <li key={m.id} className="border-b pb-2 last:border-0">
+                    <div>
+                      {m.homeTeamName} vs {m.awayTeamName}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDateTime(m.scheduledAt)}
+                      {m.location ? ` · ${m.location}` : ""}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
