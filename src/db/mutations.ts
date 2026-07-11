@@ -68,16 +68,16 @@ export async function deleteTeam(id: string) {
 }
 
 /**
- * Assigns a captain or co-captain to a team by email. Works whether or not the
+ * Adds a member to a team by email with the given role. Works whether or not the
  * person already has an account: if they do, we link their user id; if not, we
  * store the invited email and it gets claimed on sign-up (see claimInvitesForUser).
  * The captain/co-captain roles are singular per team, so any current holder is
- * demoted to player.
+ * demoted to player; the player role has no such limit.
  */
 export async function assignRoleByEmail(
   teamId: string,
   email: string,
-  role: "captain" | "co_captain",
+  role: "captain" | "co_captain" | "player",
 ) {
   const normalized = email.trim().toLowerCase();
   if (!normalized) throw new Error("Email is required.");
@@ -88,13 +88,15 @@ export async function assignRoleByEmail(
     .where(sql`lower(${user.email}) = ${normalized}`)
     .limit(1);
 
-  // Demote whoever currently holds this role on the team.
-  await db
-    .update(teamMemberships)
-    .set({ role: "player", updatedAt: new Date() })
-    .where(
-      and(eq(teamMemberships.teamId, teamId), eq(teamMemberships.role, role)),
-    );
+  // Captain/co-captain are singular per team — demote whoever currently holds it.
+  if (role !== "player") {
+    await db
+      .update(teamMemberships)
+      .set({ role: "player", updatedAt: new Date() })
+      .where(
+        and(eq(teamMemberships.teamId, teamId), eq(teamMemberships.role, role)),
+      );
+  }
 
   // Does this person already have a membership on the team?
   const [existing] = targetUser

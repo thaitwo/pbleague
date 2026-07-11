@@ -127,3 +127,19 @@ export async function assignCaptainAction(
   revalidatePath(`/admin/leagues/${leagueId}`);
   return { ok: true };
 }
+
+export async function addPlayerAction(
+  leagueId: string,
+  teamId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  const email = String(formData.get("playerEmail") ?? "").trim();
+  if (!email || !email.includes("@")) {
+    return { error: "Enter a valid email address." };
+  }
+  await mutations.assignRoleByEmail(teamId, email, "player");
+  revalidatePath(`/admin/leagues/${leagueId}`);
+  return { ok: true };
+}

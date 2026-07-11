@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AddPlayerForm } from "@/components/admin/add-player-form";
 import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
 import { CreateTeamForm } from "@/components/admin/create-team-form";
 import { DeleteButton } from "@/components/admin/delete-button";
@@ -138,11 +139,24 @@ export default async function LeagueDetailPage({
                     </div>
                   )}
 
-                  <AssignCaptainForm
-                    leagueId={league.id}
-                    teamId={team.id}
-                    hasCaptain={team.captain !== null}
-                  />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Captain
+                      </span>
+                      <AssignCaptainForm
+                        leagueId={league.id}
+                        teamId={team.id}
+                        hasCaptain={team.captain !== null}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Add player
+                      </span>
+                      <AddPlayerForm leagueId={league.id} teamId={team.id} />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
