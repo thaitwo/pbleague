@@ -8,7 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreateLeagueForm } from "@/components/admin/create-league-form";
+import { CreateLeagueDialog } from "@/components/admin/create-league-dialog";
+import { PageHeader } from "@/components/page-header";
 import { getDisputedMatches, listLeagues } from "@/db/queries";
 
 const STATUS_VARIANT = {
@@ -34,12 +35,11 @@ export default async function AdminPage() {
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Admin console</h1>
-        <p className="text-muted-foreground">
-          Create leagues by skill level and build out their teams.
-        </p>
-      </div>
+      <PageHeader
+        title="Admin console"
+        description="Create leagues by skill level and build out their teams."
+        action={<CreateLeagueDialog />}
+      />
 
       {disputes.length > 0 && (
         <Card className="border-destructive/40">
@@ -75,23 +75,11 @@ export default async function AdminPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">New league</CardTitle>
-          <CardDescription>
-            Each league is a single skill level and season.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateLeagueForm />
-        </CardContent>
-      </Card>
-
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Leagues</h2>
         {leagues.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No leagues yet. Create your first one above.
+            No leagues yet — use “Create league” to add your first one.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

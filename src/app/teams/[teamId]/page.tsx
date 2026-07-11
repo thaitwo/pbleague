@@ -14,6 +14,7 @@ import { ActionButton } from "@/components/teams/action-button";
 import { InvitePanel } from "@/components/teams/invite-panel";
 import { MatchCard } from "@/components/teams/match-card";
 import { ProposeMatchForm } from "@/components/teams/propose-match-form";
+import { PageHeader } from "@/components/page-header";
 import {
   approveRequestAction,
   declineRequestAction,
@@ -76,26 +77,20 @@ export default async function TeamPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href="/leagues"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← All leagues
-        </Link>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">{team.name}</h1>
+      <PageHeader
+        title={team.name}
+        backHref="/leagues"
+        backLabel="All leagues"
+        description={`${members.length}${
+          team.rosterCap ? `/${team.rosterCap}` : ""
+        } member${members.length === 1 ? "" : "s"}`}
+        action={
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{league.name}</Badge>
             <Badge variant="outline">Level {league.skillLevel}</Badge>
           </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {members.length}
-          {team.rosterCap ? `/${team.rosterCap}` : ""} member
-          {members.length === 1 ? "" : "s"}
-        </p>
-      </div>
+        }
+      />
 
       {/* Join / membership status */}
       {!viewerActive && (

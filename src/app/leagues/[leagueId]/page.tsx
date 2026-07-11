@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { autoConfirmStaleScores } from "@/db/mutations";
 import { getLeaguePublic, type MatchView } from "@/db/queries";
 import { formatDateTime } from "@/lib/format";
@@ -47,23 +48,19 @@ export default async function LeagueStandingsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href="/leagues"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← All leagues
-        </Link>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
+      <PageHeader
+        title={league.name}
+        backHref="/leagues"
+        backLabel="All leagues"
+        action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">Level {league.skillLevel}</Badge>
             {league.status === "completed" && (
               <Badge variant="secondary">Completed</Badge>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>

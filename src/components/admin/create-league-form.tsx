@@ -27,16 +27,18 @@ export function CreateLeagueForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="name">League name</Label>
-          <Input id="name" name="name" required placeholder="Spring Ladder" />
+          <Label htmlFor="name">
+            League name <span className="text-destructive">*</span>
+          </Label>
+          <Input id="name" name="name" required />
         </div>
         <div className="flex flex-col gap-2">
           <Label>Skill level</Label>
-          <Select name="skillLevel" defaultValue={SKILL_LEVELS[1]}>
+          <Select name="skillLevel">
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a level" />
+              <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
               {SKILL_LEVELS.map((level) => (
@@ -48,15 +50,25 @@ export function CreateLeagueForm() {
           </Select>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="seasonStart">Season start (optional)</Label>
-          <Input id="seasonStart" name="seasonStart" type="date" />
+          <Label htmlFor="seasonStart">Start date</Label>
+          <Input
+            id="seasonStart"
+            name="seasonStart"
+            type="date"
+            className="[&::-webkit-datetime-edit]:text-muted-foreground"
+          />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="seasonEnd">Season end (optional)</Label>
-          <Input id="seasonEnd" name="seasonEnd" type="date" />
+          <Label htmlFor="seasonEnd">End date</Label>
+          <Input
+            id="seasonEnd"
+            name="seasonEnd"
+            type="date"
+            className="[&::-webkit-datetime-edit]:text-muted-foreground"
+          />
         </div>
       </div>
-      <Button type="submit" disabled={pending} className="self-start">
+      <Button type="submit" disabled={pending} className="self-end">
         {pending ? "Creating…" : "Create league"}
       </Button>
     </form>

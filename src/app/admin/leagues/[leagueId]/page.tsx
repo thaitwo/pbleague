@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +11,7 @@ import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
 import { CreateTeamForm } from "@/components/admin/create-team-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { EditLeagueForm } from "@/components/admin/edit-league-form";
+import { PageHeader } from "@/components/page-header";
 import {
   deleteLeagueAction,
   deleteTeamAction,
@@ -41,18 +41,12 @@ export default async function LeagueDetailPage({
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <Link
-          href="/admin"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Back to admin
-        </Link>
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
-          <Badge variant="secondary">Level {league.skillLevel}</Badge>
-        </div>
-      </div>
+      <PageHeader
+        title={league.name}
+        backHref="/admin"
+        backLabel="Back to admin"
+        action={<Badge variant="secondary">Level {league.skillLevel}</Badge>}
+      />
 
       <Card>
         <CardHeader>

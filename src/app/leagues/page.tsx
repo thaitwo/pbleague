@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { listPublicLeagues } from "@/db/queries";
 
 export default async function LeaguesPage() {
@@ -13,12 +14,10 @@ export default async function LeaguesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Leagues</h1>
-        <p className="text-muted-foreground">
-          Browse teams by skill level and request to join.
-        </p>
-      </div>
+      <PageHeader
+        title="Leagues"
+        description="Browse teams by skill level and request to join."
+      />
 
       {leagues.length === 0 ? (
         <p className="text-sm text-muted-foreground">

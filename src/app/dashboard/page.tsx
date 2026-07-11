@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 import { getUserMatches, getUserTeams } from "@/db/queries";
 import { auth } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -66,14 +67,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Welcome, {user.name.split(" ")[0]}
-        </h1>
-        <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening across your teams.
-        </p>
-      </div>
+      <PageHeader
+        title={`Welcome, ${user.name.split(" ")[0]}`}
+        description="Here's what's happening across your teams."
+      />
 
       {profileIncomplete && (
         <Card className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
