@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { auth } from "@/lib/auth";
 
@@ -13,11 +12,7 @@ export async function SiteHeader() {
     <header className="border-b">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-semibold tracking-tight"
-          >
-            <Logo className="size-5" />
+          <Link href="/" className="text-xl font-bold tracking-tight">
             PBL
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted-foreground">
