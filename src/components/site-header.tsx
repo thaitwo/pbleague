@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SignOutButton } from "@/components/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { auth } from "@/lib/auth";
 
 export async function SiteHeader() {
@@ -29,21 +29,15 @@ export async function SiteHeader() {
                 Admin
               </Link>
             )}
-            {session && (
-              <Link href="/profile" className="hover:text-foreground">
-                Profile
-              </Link>
-            )}
           </nav>
         </div>
         <div className="flex items-center gap-3">
           {session ? (
             <>
-              {session.user.role === "admin" && <Badge variant="secondary">Admin</Badge>}
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {session.user.name}
-              </span>
-              <SignOutButton />
+              {session.user.role === "admin" && (
+                <Badge variant="secondary">Admin</Badge>
+              )}
+              <UserMenu name={session.user.name} email={session.user.email} />
             </>
           ) : (
             <>
