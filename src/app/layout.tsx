@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PB League",
+  title: "PBL — Pickleball League",
   description:
     "Pickleball league management — leagues, teams, schedules, and standings.",
 };
