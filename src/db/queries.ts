@@ -1,4 +1,4 @@
-import { type SQL, and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
+import { type SQL, and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./index";
 import {
@@ -114,50 +114,16 @@ export async function getLeagueDetail(
   return { league, teams: teamsWithMembers };
 }
 
-/** Public directory: non-draft leagues with their teams and rosters. */
-export type DirectoryLeague = {
-  league: typeof leagues.$inferSelect;
-  teams: TeamWithMembers[];
-};
-
-export async function listPublicLeagues(): Promise<DirectoryLeague[]> {
-  const leagueRows = await db
+/** Public directory: non-draft leagues, most recent season first. */
+export async function listPublicLeagues() {
+  return db
     .select()
     .from(leagues)
     .where(ne(leagues.status, "draft"))
-    .orderBy(desc(leagues.createdAt));
-  if (leagueRows.length === 0) return [];
-
-  const teamRows = await db
-    .select()
-    .from(teams)
-    .where(
-      inArray(
-        teams.leagueId,
-        leagueRows.map((l) => l.id),
-      ),
-    )
-    .orderBy(asc(teams.name));
-
-  const byTeam = await loadMembersByTeam(teamRows.map((t) => t.id));
-
-  return leagueRows.map((league) => ({
-    league,
-    teams: teamRows
-      .filter((t) => t.leagueId === league.id)
-      .map((t) => {
-        const active = (byTeam.get(t.id) ?? []).filter(
-          (m) => m.status === "active",
-        );
-        return {
-          id: t.id,
-          name: t.name,
-          rosterCap: t.rosterCap,
-          members: active,
-          captain: active.find((m) => m.role === "captain") ?? null,
-        };
-      }),
-  }));
+    .orderBy(
+      sql`${leagues.seasonStart} desc nulls last`,
+      desc(leagues.createdAt),
+    );
 }
 
 export type TeamPage = {

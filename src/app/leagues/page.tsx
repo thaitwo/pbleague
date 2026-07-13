@@ -1,13 +1,27 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { listPublicLeagues } from "@/db/queries";
+
+function fmt(d: Date | null) {
+  return d
+    ? new Date(d).toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "2-digit",
+      })
+    : null;
+}
+
+function dateRange(start: Date | null, end: Date | null) {
+  const s = fmt(start);
+  const e = fmt(end);
+  if (s && e) return `${s} – ${e}`;
+  if (s) return `Starts ${s}`;
+  if (e) return `Ends ${e}`;
+  return "Dates TBD";
+}
 
 export default async function LeaguesPage() {
   const leagues = await listPublicLeagues();
@@ -16,7 +30,7 @@ export default async function LeaguesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Leagues"
-        description="Browse teams by skill level and request to join."
+        description="Browse leagues and view standings."
       />
 
       {leagues.length === 0 ? (
@@ -24,52 +38,28 @@ export default async function LeaguesPage() {
           No open leagues right now. Check back soon.
         </p>
       ) : (
-        leagues.map(({ league, teams }) => (
-          <section key={league.id} className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/leagues/${league.id}`}
-                className="text-lg font-semibold hover:underline"
-              >
-                {league.name}
-              </Link>
-              <Badge variant="outline">Level {league.skillLevel}</Badge>
-              {league.status === "completed" && (
-                <Badge variant="secondary">Completed</Badge>
-              )}
-              <Link
-                href={`/leagues/${league.id}`}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Standings →
-              </Link>
-            </div>
-            {teams.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No teams in this league yet.
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {teams.map((team) => (
-                  <Link key={team.id} href={`/teams/${team.id}`}>
-                    <Card className="h-full transition-colors hover:border-foreground/30">
-                      <CardHeader>
-                        <CardTitle className="text-base">{team.name}</CardTitle>
-                        <CardDescription>
-                          {team.members.length}
-                          {team.rosterCap ? `/${team.rosterCap}` : ""} member
-                          {team.members.length === 1 ? "" : "s"}
-                          {team.captain &&
-                            ` · Captain ${team.captain.name ?? team.captain.email}`}
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
+        <div className="flex flex-col divide-y">
+          {leagues.map((league) => (
+            <Link
+              key={league.id}
+              href={`/leagues/${league.id}`}
+              className="-mx-3 flex items-center justify-between gap-4 px-3 py-4 hover:bg-muted"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{league.name}</span>
+                {league.status === "completed" && (
+                  <Badge variant="secondary">Completed</Badge>
+                )}
               </div>
-            )}
-          </section>
-        ))
+              <div className="flex items-center gap-6">
+                <span className="text-sm text-muted-foreground">
+                  {dateRange(league.seasonStart, league.seasonEnd)}
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </div>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );
