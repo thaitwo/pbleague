@@ -1,3 +1,5 @@
+export {}; // treat this file as a module (isolates its top-level scope)
+
 try {
   process.loadEnvFile(".env.local");
 } catch {
