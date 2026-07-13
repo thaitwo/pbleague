@@ -45,7 +45,6 @@ export default async function LeagueDetailPage({
       <PageHeader
         title={league.name}
         backHref="/admin"
-        backLabel="Back to admin"
         action={<Badge variant="secondary">Level {league.skillLevel}</Badge>}
       />
 

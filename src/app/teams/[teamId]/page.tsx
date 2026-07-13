@@ -80,7 +80,6 @@ export default async function TeamPage({
       <PageHeader
         title={team.name}
         backHref="/leagues"
-        backLabel="All leagues"
         description={`${members.length}${
           team.rosterCap ? `/${team.rosterCap}` : ""
         } member${members.length === 1 ? "" : "s"}`}

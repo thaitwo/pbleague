@@ -1,37 +1,39 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function PageHeader({
   title,
   description,
   action,
   backHref,
-  backLabel = "Back",
 }: {
   title: string;
   description?: string;
   action?: React.ReactNode;
   backHref?: string;
-  backLabel?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      {backHref ? (
-        <Link
-          href={backHref}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {backLabel}
-        </Link>
-      ) : null}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          {description ? (
-            <p className="text-muted-foreground">{description}</p>
+    <div className="flex items-start justify-between gap-4">
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          {backHref ? (
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Back"
+              render={<Link href={backHref} />}
+            >
+              <ArrowLeft />
+            </Button>
           ) : null}
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {description ? (
+          <p className="text-muted-foreground">{description}</p>
+        ) : null}
       </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
 }

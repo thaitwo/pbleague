@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -48,19 +47,7 @@ export default async function LeagueStandingsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={league.name}
-        backHref="/leagues"
-        backLabel="All leagues"
-        action={
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">Level {league.skillLevel}</Badge>
-            {league.status === "completed" && (
-              <Badge variant="secondary">Completed</Badge>
-            )}
-          </div>
-        }
-      />
+      <PageHeader title={league.name} backHref="/leagues" />
 
       <Card>
         <CardHeader>
