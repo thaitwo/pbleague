@@ -24,9 +24,19 @@ npm run dev         # starts embedded Postgres + Next.js dev server together
 |---|---|
 | `npm run dev` | Start embedded Postgres + Next dev server |
 | `npm run db:start` | Start only the local Postgres (e.g. alongside `npm run build`) |
-| `npm run db:push` | Apply the Drizzle schema in `src/db/schema.ts` to the database |
+| `npm run db:push` | Apply the Drizzle schema in `src/db/schema.ts` to the local database |
+| `npm run db:push:prod` | Apply the schema to **production** (reads `.env.migrate`) |
 | `npm run db:studio` | Browse the database in Drizzle Studio |
 | `npm run make-admin -- <email>` | Promote a signed-up user to league admin |
+
+### Production migrations
+
+When a change touches `src/db/schema.ts`, the production database needs the same
+change. Put your Neon **direct/unpooled** connection string in a gitignored
+`.env.migrate` (`DATABASE_URL=…`), then run `npm run db:push:prod` — the secret
+stays in the file and never appears on the command line. Apply the
+migration **before** deploying the code (schema additions are backward-compatible,
+so the live app keeps working until the new code ships).
 
 ## Project layout
 
