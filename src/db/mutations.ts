@@ -54,7 +54,7 @@ export async function createTeam({ captainEmail, ...input }: TeamInput) {
 
 export async function updateTeam(
   id: string,
-  input: { name: string; rosterCap: number | null },
+  input: { name: string; area?: string | null; rosterCap: number | null },
 ) {
   const [team] = await db
     .update(teams)

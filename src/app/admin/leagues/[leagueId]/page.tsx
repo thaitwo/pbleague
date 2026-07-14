@@ -10,6 +10,7 @@ import {
 import { AddPlayerForm } from "@/components/admin/add-player-form";
 import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
 import { CreateTeamForm } from "@/components/admin/create-team-form";
+import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { EditLeagueForm } from "@/components/admin/edit-league-form";
 import { PageHeader } from "@/components/page-header";
@@ -118,10 +119,21 @@ export default async function LeagueDetailPage({
                         )}
                       </p>
                     </div>
-                    <DeleteButton
-                      action={deleteTeamAction.bind(null, league.id, team.id)}
-                      confirmMessage={`Delete team "${team.name}"?`}
-                    />
+                    <div className="flex shrink-0 items-center gap-2">
+                      <EditTeamDialog
+                        leagueId={league.id}
+                        team={{
+                          id: team.id,
+                          name: team.name,
+                          area: team.area,
+                          rosterCap: team.rosterCap,
+                        }}
+                      />
+                      <DeleteButton
+                        action={deleteTeamAction.bind(null, league.id, team.id)}
+                        confirmMessage={`Delete team "${team.name}"?`}
+                      />
+                    </div>
                   </div>
 
                   {team.members.length > 0 && (

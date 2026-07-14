@@ -72,6 +72,7 @@ export async function listLeagues() {
 export type TeamWithMembers = {
   id: string;
   name: string;
+  area: string | null;
   rosterCap: number | null;
   members: TeamMember[]; // active members only
   captain: TeamMember | null;
@@ -105,6 +106,7 @@ export async function getLeagueDetail(
     return {
       id: t.id,
       name: t.name,
+      area: t.area,
       rosterCap: t.rosterCap,
       members: active,
       captain: active.find((m) => m.role === "captain") ?? null,

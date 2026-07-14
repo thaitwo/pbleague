@@ -118,6 +118,32 @@ export async function deleteTeamAction(leagueId: string, teamId: string) {
   revalidatePath(`/admin/leagues/${leagueId}`);
 }
 
+export async function updateTeamAction(
+  leagueId: string,
+  teamId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Team name is required." };
+
+  const area = String(formData.get("area") ?? "").trim();
+  if (!AREAS.includes(area as (typeof AREAS)[number])) {
+    return { error: "Please pick an area." };
+  }
+
+  const capRaw = String(formData.get("rosterCap") ?? "").trim();
+  const rosterCap = capRaw ? Number(capRaw) : null;
+  if (rosterCap !== null && (!Number.isInteger(rosterCap) || rosterCap < 1)) {
+    return { error: "Roster cap must be a positive whole number." };
+  }
+
+  await mutations.updateTeam(teamId, { name, area, rosterCap });
+  revalidatePath(`/admin/leagues/${leagueId}`);
+  return { ok: true };
+}
+
 export async function assignCaptainAction(
   leagueId: string,
   teamId: string,
