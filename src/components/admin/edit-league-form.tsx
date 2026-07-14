@@ -30,9 +30,18 @@ type EditLeagueFormProps = {
     seasonStart: string;
     seasonEnd: string;
   };
+  onSaved?: () => void;
+  onCancel?: () => void;
+  deleteSlot?: React.ReactNode;
 };
 
-export function EditLeagueForm({ leagueId, initial }: EditLeagueFormProps) {
+export function EditLeagueForm({
+  leagueId,
+  initial,
+  onSaved,
+  onCancel,
+  deleteSlot,
+}: EditLeagueFormProps) {
   const action = updateLeagueAction.bind(null, leagueId);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
@@ -41,12 +50,15 @@ export function EditLeagueForm({ leagueId, initial }: EditLeagueFormProps) {
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
-    else if (state.ok) toast.success("League updated.");
-  }, [state]);
+    else if (state.ok) {
+      toast.success("League updated.");
+      onSaved?.();
+    }
+  }, [state, onSaved]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">League name</Label>
           <Input id="name" name="name" required defaultValue={initial.name} />
@@ -81,7 +93,6 @@ export function EditLeagueForm({ leagueId, initial }: EditLeagueFormProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="hidden sm:block" />
         <div className="flex flex-col gap-2">
           <Label htmlFor="seasonStart">Season start</Label>
           <Input
@@ -101,9 +112,17 @@ export function EditLeagueForm({ leagueId, initial }: EditLeagueFormProps) {
           />
         </div>
       </div>
-      <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Saving…" : "Save changes"}
-      </Button>
+      <div className="-mx-4 -mb-4 flex items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4">
+        {deleteSlot}
+        <div className="ml-auto flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save changes"}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

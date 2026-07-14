@@ -12,12 +12,9 @@ import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
 import { CreateTeamForm } from "@/components/admin/create-team-form";
 import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
 import { DeleteButton } from "@/components/admin/delete-button";
-import { EditLeagueForm } from "@/components/admin/edit-league-form";
+import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
 import { PageHeader } from "@/components/page-header";
-import {
-  deleteLeagueAction,
-  deleteTeamAction,
-} from "@/app/admin/actions";
+import { deleteTeamAction } from "@/app/admin/actions";
 import { getLeagueDetail } from "@/db/queries";
 
 function toDateInput(d: Date | null) {
@@ -46,19 +43,10 @@ export default async function LeagueDetailPage({
       <PageHeader
         title={league.name}
         backHref="/admin"
-        action={<Badge variant="secondary">Level {league.skillLevel}</Badge>}
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">League settings</CardTitle>
-          <CardDescription>
-            Update the name, level, season dates, or status.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <EditLeagueForm
+        action={
+          <EditLeagueDialog
             leagueId={league.id}
+            leagueName={league.name}
             initial={{
               name: league.name,
               skillLevel: league.skillLevel,
@@ -67,18 +55,8 @@ export default async function LeagueDetailPage({
               seasonEnd: toDateInput(league.seasonEnd),
             }}
           />
-          <div className="flex items-center justify-between border-t pt-4">
-            <p className="text-sm text-muted-foreground">
-              Deleting a league removes its teams and rosters.
-            </p>
-            <DeleteButton
-              action={deleteLeagueAction.bind(null, league.id)}
-              confirmMessage={`Delete "${league.name}" and all of its teams? This cannot be undone.`}
-              label="Delete league"
-            />
-          </div>
-        </CardContent>
-      </Card>
+        }
+      />
 
       <Card>
         <CardHeader>

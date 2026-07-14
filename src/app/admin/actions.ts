@@ -69,9 +69,17 @@ export async function updateLeagueAction(
   return { ok: true };
 }
 
-export async function deleteLeagueAction(leagueId: string) {
+export async function deleteLeagueAction(
+  leagueId: string,
+): Promise<ActionState> {
   await requireAdmin();
-  await mutations.deleteLeague(leagueId);
+  try {
+    await mutations.deleteLeague(leagueId);
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Could not delete the league.",
+    };
+  }
   revalidatePath("/admin");
   redirect("/admin");
 }
