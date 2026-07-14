@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -68,9 +69,18 @@ export function CreateLeagueForm() {
           />
         </div>
       </div>
-      <Button type="submit" disabled={pending} className="self-end">
-        {pending ? "Creating…" : "Create league"}
-      </Button>
+      <div className="-mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t bg-muted/50 p-4">
+        <DialogClose
+          render={
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          }
+        />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating…" : "Create league"}
+        </Button>
+      </div>
     </form>
   );
 }
