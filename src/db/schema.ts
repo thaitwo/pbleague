@@ -112,6 +112,7 @@ export const teams = pgTable("teams", {
     .notNull()
     .references(() => leagues.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  area: text("area"),
   rosterCap: integer("roster_cap"),
   inviteToken: text("invite_token").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -39,6 +39,7 @@ export async function deleteLeague(id: string) {
 type TeamInput = {
   leagueId: string;
   name: string;
+  area?: string | null;
   rosterCap: number | null;
   captainEmail?: string | null;
 };

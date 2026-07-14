@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as mutations from "@/db/mutations";
 import { requireAdmin } from "@/lib/auth-guard";
-import { SKILL_LEVELS } from "@/lib/constants";
+import { AREAS, SKILL_LEVELS } from "@/lib/constants";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -91,6 +91,11 @@ export async function createTeamAction(
     return { error: "Roster cap must be a positive whole number." };
   }
 
+  const area = String(formData.get("area") ?? "").trim();
+  if (!AREAS.includes(area as (typeof AREAS)[number])) {
+    return { error: "Please pick an area." };
+  }
+
   const captainEmail = String(formData.get("captainEmail") ?? "").trim();
   if (captainEmail && !captainEmail.includes("@")) {
     return { error: "Captain email looks invalid." };
@@ -99,6 +104,7 @@ export async function createTeamAction(
   await mutations.createTeam({
     leagueId,
     name,
+    area,
     rosterCap,
     captainEmail: captainEmail || null,
   });

@@ -5,7 +5,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createTeamAction, type ActionState } from "@/app/admin/actions";
+import { AREAS } from "@/lib/constants";
 
 export function CreateTeamForm({ leagueId }: { leagueId: string }) {
   const action = createTeamAction.bind(null, leagueId);
@@ -32,6 +40,21 @@ export function CreateTeamForm({ leagueId }: { leagueId: string }) {
       <div className="flex flex-1 flex-col gap-2">
         <Label htmlFor="team-name">Team name</Label>
         <Input id="team-name" name="name" required placeholder="Dinkers" />
+      </div>
+      <div className="flex flex-col gap-2 sm:w-40">
+        <Label>Area</Label>
+        <Select name="area">
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select..." />
+          </SelectTrigger>
+          <SelectContent>
+            {AREAS.map((area) => (
+              <SelectItem key={area} value={area}>
+                {area}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex flex-col gap-2 sm:w-28">
         <Label htmlFor="rosterCap">Roster cap</Label>
