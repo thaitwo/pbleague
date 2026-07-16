@@ -75,41 +75,59 @@ export default async function AdminPage() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Leagues</h2>
-        {leagues.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No leagues yet — use “Create league” to add your first one.
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {leagues.map((league) => {
-              const start = formatDate(league.seasonStart);
-              const end = formatDate(league.seasonEnd);
-              return (
-                <Link key={league.id} href={`/admin/leagues/${league.id}`}>
-                  <Card className="transition-colors hover:border-foreground/30">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base">
-                          {league.name}
-                        </CardTitle>
-                        <Badge variant={STATUS_VARIANT[league.status]}>
-                          {league.status}
-                        </Badge>
-                      </div>
-                      <CardDescription>
-                        Level {league.skillLevel}
-                        {start && ` · ${start}${end ? ` – ${end}` : ""}`}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Leagues</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {leagues.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No leagues yet — use “Create league” to add your first one.
+            </p>
+          ) : (
+            <div className="flex flex-col divide-y">
+              <div className="-mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                <span>League Name</span>
+                <span>Level</span>
+                <span>Season</span>
+                <span>Status</span>
+              </div>
+              {leagues.map((league) => {
+                const start = formatDate(league.seasonStart);
+                const end = formatDate(league.seasonEnd);
+                const season = start
+                  ? `${start}${end ? ` – ${end}` : ""}`
+                  : "—";
+                return (
+                  <div
+                    key={league.id}
+                    className="relative -mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    <Link
+                      href={`/admin/leagues/${league.id}`}
+                      className="min-w-0 truncate font-medium after:absolute after:inset-0"
+                    >
+                      {league.name}
+                    </Link>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      {league.skillLevel}
+                    </span>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      {season}
+                    </span>
+                    <Badge
+                      variant={STATUS_VARIANT[league.status]}
+                      className="justify-self-start"
+                    >
+                      {league.status}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </>
   );
 }
