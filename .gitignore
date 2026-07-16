@@ -52,3 +52,6 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# local handoff scratch note (regenerate on demand; not a source of truth)
+/HANDOFF.md
