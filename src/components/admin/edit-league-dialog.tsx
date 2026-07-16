@@ -37,7 +37,7 @@ export function EditLeagueDialog({
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
-            Edit
+            Edit league
           </Button>
         }
       />

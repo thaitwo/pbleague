@@ -78,7 +78,7 @@ export function EditTeamForm({ leagueId, team, onSaved }: EditTeamFormProps) {
           placeholder="—"
         />
       </div>
-      <div className="-mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t bg-muted/50 p-4">
+      <div className="flex justify-end gap-2">
         <DialogClose
           render={
             <Button type="button" variant="outline">

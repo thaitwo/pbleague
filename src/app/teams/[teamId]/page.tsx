@@ -43,10 +43,13 @@ const ROLE_ORDER = { captain: 0, co_captain: 1, player: 2 } as const;
 
 export default async function TeamPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ teamId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { teamId } = await params;
+  const { from } = await searchParams;
   const data = await getTeamPage(teamId);
   if (!data) notFound();
 
@@ -79,7 +82,11 @@ export default async function TeamPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title={team.name}
-        backHref="/leagues"
+        backHref={
+          from === "admin" && isAdmin
+            ? `/admin/leagues/${league.id}`
+            : "/leagues"
+        }
         description={`${members.length}${
           team.rosterCap ? `/${team.rosterCap}` : ""
         } member${members.length === 1 ? "" : "s"}`}
