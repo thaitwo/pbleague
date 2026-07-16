@@ -55,7 +55,7 @@ export function TeamRowActions({
         />
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            Edit
+            Edit team
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"

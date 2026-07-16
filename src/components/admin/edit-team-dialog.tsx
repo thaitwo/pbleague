@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { EditTeamForm } from "@/components/admin/edit-team-form";
 import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
-import { AddPlayerForm } from "@/components/admin/add-player-form";
 
 type EditTeamDialogProps = {
   leagueId: string;
@@ -26,6 +25,7 @@ type EditTeamDialogProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: boolean;
+  triggerLabel?: string;
 };
 
 export function EditTeamDialog({
@@ -34,6 +34,7 @@ export function EditTeamDialog({
   open: openProp,
   onOpenChange,
   trigger = true,
+  triggerLabel = "Edit",
 }: EditTeamDialogProps) {
   const [openState, setOpenState] = useState(false);
   const isControlled = openProp !== undefined;
@@ -48,7 +49,7 @@ export function EditTeamDialog({
         <DialogTrigger
           render={
             <Button variant="outline" size="sm">
-              Edit
+              {triggerLabel}
             </Button>
           }
         />
@@ -64,9 +65,8 @@ export function EditTeamDialog({
           leagueId={leagueId}
           team={team}
           onSaved={() => setOpen(false)}
-        />
-        <div className="flex flex-col gap-4 border-t pt-4">
-          <div className="flex flex-col gap-1.5">
+        >
+          <div className="flex flex-col gap-1.5 border-t pt-4">
             <span className="text-sm font-medium">Captain</span>
             <AssignCaptainForm
               leagueId={leagueId}
@@ -74,11 +74,7 @@ export function EditTeamDialog({
               hasCaptain={team.hasCaptain}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Add player</span>
-            <AddPlayerForm leagueId={leagueId} teamId={team.id} />
-          </div>
-        </div>
+        </EditTeamForm>
       </DialogContent>
     </Dialog>
   );

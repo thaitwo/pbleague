@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useId } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { DialogClose } from "@/components/ui/dialog";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,9 +25,16 @@ type EditTeamFormProps = {
     rosterCap: number | null;
   };
   onSaved: () => void;
+  children?: React.ReactNode;
 };
 
-export function EditTeamForm({ leagueId, team, onSaved }: EditTeamFormProps) {
+export function EditTeamForm({
+  leagueId,
+  team,
+  onSaved,
+  children,
+}: EditTeamFormProps) {
+  const formId = useId();
   const action = updateTeamAction.bind(null, leagueId, team.id);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
@@ -42,43 +49,46 @@ export function EditTeamForm({ leagueId, team, onSaved }: EditTeamFormProps) {
   }, [state, onSaved]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-team-name">Team name</Label>
-        <Input
-          id="edit-team-name"
-          name="name"
-          required
-          defaultValue={team.name}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label>Area</Label>
-        <Select name="area" defaultValue={team.area ?? undefined}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent>
-            {AREAS.map((area) => (
-              <SelectItem key={area} value={area}>
-                {area}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-roster-cap">Roster cap (optional)</Label>
-        <Input
-          id="edit-roster-cap"
-          name="rosterCap"
-          type="number"
-          min={1}
-          defaultValue={team.rosterCap ?? ""}
-          placeholder="—"
-        />
-      </div>
-      <div className="flex justify-end gap-2">
+    <>
+      <form id={formId} action={formAction} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="edit-team-name">Team name</Label>
+          <Input
+            id="edit-team-name"
+            name="name"
+            required
+            defaultValue={team.name}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Area</Label>
+          <Select name="area" defaultValue={team.area ?? undefined}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {AREAS.map((area) => (
+                <SelectItem key={area} value={area}>
+                  {area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="edit-roster-cap">Roster cap (optional)</Label>
+          <Input
+            id="edit-roster-cap"
+            name="rosterCap"
+            type="number"
+            min={1}
+            defaultValue={team.rosterCap ?? ""}
+            placeholder="—"
+          />
+        </div>
+      </form>
+      {children}
+      <DialogFooter>
         <DialogClose
           render={
             <Button type="button" variant="outline">
@@ -86,10 +96,10 @@ export function EditTeamForm({ leagueId, team, onSaved }: EditTeamFormProps) {
             </Button>
           }
         />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" form={formId} disabled={pending}>
           {pending ? "Saving…" : "Save changes"}
         </Button>
-      </div>
-    </form>
+      </DialogFooter>
+    </>
   );
 }

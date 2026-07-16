@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
+import { AddPlayerDialog } from "@/components/admin/add-player-dialog";
 import { ActionButton } from "@/components/teams/action-button";
 import { InvitePanel } from "@/components/teams/invite-panel";
 import { MatchCard } from "@/components/teams/match-card";
@@ -94,6 +96,20 @@ export default async function TeamPage({
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{league.name}</Badge>
             <Badge variant="outline">Level {league.skillLevel}</Badge>
+            {isAdmin && (
+              <EditTeamDialog
+                leagueId={league.id}
+                team={{
+                  id: team.id,
+                  name: team.name,
+                  area: team.area,
+                  rosterCap: team.rosterCap,
+                  hasCaptain: members.some((m) => m.role === "captain"),
+                }}
+                triggerLabel="Edit team"
+              />
+            )}
+            {isAdmin && <AddPlayerDialog leagueId={league.id} teamId={team.id} />}
           </div>
         }
       />
