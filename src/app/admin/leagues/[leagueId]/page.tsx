@@ -60,10 +60,16 @@ export default async function LeagueDetailPage({
             <p className="text-sm text-muted-foreground">No teams yet.</p>
           ) : (
             <div className="flex flex-col divide-y">
+              <div className="-mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_1.75rem] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                <span>Team Name</span>
+                <span>Area</span>
+                <span>Captain</span>
+                <span className="sr-only">Actions</span>
+              </div>
               {teams.map((team) => (
                 <div
                   key={team.id}
-                  className="relative -mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_auto] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
+                  className="relative -mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_1.75rem] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
                 >
                   <Link
                     href={`/teams/${team.id}?from=admin`}
@@ -76,7 +82,7 @@ export default async function LeagueDetailPage({
                   </span>
                   <span className="min-w-0 truncate text-sm text-muted-foreground">
                     {team.captain
-                      ? `Captain ${team.captain.name ?? team.captain.email}${
+                      ? `${team.captain.name ?? team.captain.email}${
                           team.captain.claimed ? "" : " (pending)"
                         }`
                       : "No captain"}
