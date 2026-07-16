@@ -23,19 +23,36 @@ type EditTeamDialogProps = {
     rosterCap: number | null;
     hasCaptain: boolean;
   };
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: boolean;
 };
 
-export function EditTeamDialog({ leagueId, team }: EditTeamDialogProps) {
-  const [open, setOpen] = useState(false);
+export function EditTeamDialog({
+  leagueId,
+  team,
+  open: openProp,
+  onOpenChange,
+  trigger = true,
+}: EditTeamDialogProps) {
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) => {
+    if (!isControlled) setOpenState(o);
+    onOpenChange?.(o);
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="sm">
-            Edit
-          </Button>
-        }
-      />
+      {trigger && (
+        <DialogTrigger
+          render={
+            <Button variant="outline" size="sm">
+              Edit
+            </Button>
+          }
+        />
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit team</DialogTitle>

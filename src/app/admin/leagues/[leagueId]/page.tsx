@@ -3,13 +3,11 @@ import { notFound } from "next/navigation";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { CreateTeamDialog } from "@/components/admin/create-team-dialog";
-import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
-import { DeleteButton } from "@/components/admin/delete-button";
+import { TeamRowActions } from "@/components/admin/team-row-actions";
 import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
 import { PageHeader } from "@/components/page-header";
 import { deleteTeamAction } from "@/app/admin/actions";
@@ -56,9 +54,6 @@ export default async function LeagueDetailPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Teams</CardTitle>
-          <CardDescription>
-            Click a team to view its roster and matches.
-          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           {teams.length === 0 ? (
@@ -68,27 +63,26 @@ export default async function LeagueDetailPage({
               {teams.map((team) => (
                 <div
                   key={team.id}
-                  className="flex items-center justify-between gap-4 py-3"
+                  className="relative -mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_auto] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
                 >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/teams/${team.id}?from=admin`}
-                      className="font-medium hover:underline"
-                    >
-                      {team.name}
-                    </Link>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {team.area ?? "No area"}
-                      {" · "}
-                      {team.captain
-                        ? `Captain ${team.captain.name ?? team.captain.email}${
-                            team.captain.claimed ? "" : " (pending)"
-                          }`
-                        : "No captain"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <EditTeamDialog
+                  <Link
+                    href={`/teams/${team.id}?from=admin`}
+                    className="min-w-0 truncate font-medium after:absolute after:inset-0"
+                  >
+                    {team.name}
+                  </Link>
+                  <span className="min-w-0 truncate text-sm text-muted-foreground">
+                    {team.area ?? "No area"}
+                  </span>
+                  <span className="min-w-0 truncate text-sm text-muted-foreground">
+                    {team.captain
+                      ? `Captain ${team.captain.name ?? team.captain.email}${
+                          team.captain.claimed ? "" : " (pending)"
+                        }`
+                      : "No captain"}
+                  </span>
+                  <div className="relative z-10">
+                    <TeamRowActions
                       leagueId={league.id}
                       team={{
                         id: team.id,
@@ -97,10 +91,11 @@ export default async function LeagueDetailPage({
                         rosterCap: team.rosterCap,
                         hasCaptain: team.captain !== null,
                       }}
-                    />
-                    <DeleteButton
-                      action={deleteTeamAction.bind(null, league.id, team.id)}
-                      confirmMessage={`Delete team "${team.name}"?`}
+                      deleteAction={deleteTeamAction.bind(
+                        null,
+                        league.id,
+                        team.id,
+                      )}
                     />
                   </div>
                 </div>
