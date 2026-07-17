@@ -67,6 +67,7 @@ export function InvitePanel({
       ) : (
         <Button
           type="button"
+          variant="outline"
           size="sm"
           className="self-start"
           disabled={pending}

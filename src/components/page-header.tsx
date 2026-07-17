@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 
 export function PageHeader({
   title,
+  titleExtra,
   description,
   action,
   backHref,
 }: {
   title: string;
+  titleExtra?: React.ReactNode;
   description?: string;
   action?: React.ReactNode;
   backHref?: string;
@@ -28,6 +30,9 @@ export function PageHeader({
             </Button>
           ) : null}
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          {titleExtra ? (
+            <div className="flex items-center gap-2">{titleExtra}</div>
+          ) : null}
         </div>
         {description ? (
           <p className="text-muted-foreground">{description}</p>

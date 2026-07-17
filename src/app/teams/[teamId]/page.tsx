@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -92,10 +93,14 @@ export default async function TeamPage({
         description={`${members.length}${
           team.rosterCap ? `/${team.rosterCap}` : ""
         } member${members.length === 1 ? "" : "s"}`}
-        action={
-          <div className="flex items-center gap-2">
+        titleExtra={
+          <>
             <Badge variant="secondary">{league.name}</Badge>
             <Badge variant="outline">Level {league.skillLevel}</Badge>
+          </>
+        }
+        action={
+          <div className="flex items-center gap-2">
             {isAdmin && (
               <EditTeamDialog
                 leagueId={league.id}
@@ -109,7 +114,6 @@ export default async function TeamPage({
                 triggerLabel="Edit team"
               />
             )}
-            {isAdmin && <AddPlayerDialog leagueId={league.id} teamId={team.id} />}
           </div>
         }
       />
@@ -127,6 +131,11 @@ export default async function TeamPage({
                   roster.find((m) => m.role === "captain")?.email ??
                   "not set"}
               </CardDescription>
+              {isAdmin && (
+                <CardAction>
+                  <AddPlayerDialog leagueId={league.id} teamId={team.id} />
+                </CardAction>
+              )}
             </CardHeader>
             <CardContent>
               {roster.length === 0 ? (
@@ -336,6 +345,7 @@ export default async function TeamPage({
                       action={requestToJoinAction.bind(null, teamId)}
                       label="Request to join"
                       pendingLabel="Sending…"
+                      variant="outline"
                     />
                   </>
                 )}
