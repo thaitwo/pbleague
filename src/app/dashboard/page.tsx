@@ -22,6 +22,7 @@ const ROLE_LABEL = {
 } as const;
 
 const MATCH_STATUS_LABEL = {
+  unscheduled: "Not scheduled",
   proposed: "Proposed",
   scheduled: "Scheduled",
   completed: "Played",

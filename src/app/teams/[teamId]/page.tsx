@@ -17,19 +17,18 @@ import { ActionButton } from "@/components/teams/action-button";
 import { InvitePanel } from "@/components/teams/invite-panel";
 import { MatchCard } from "@/components/teams/match-card";
 import { ProposeMatchForm } from "@/components/teams/propose-match-form";
+import { RosterRowActions } from "@/components/teams/roster-row-actions";
 import { PageHeader } from "@/components/page-header";
 import {
   approveRequestAction,
   declineRequestAction,
-  demoteCoCaptainAction,
-  promoteCoCaptainAction,
-  removeMemberAction,
   requestToJoinAction,
 } from "@/app/teams/actions";
 import { autoConfirmStaleScores } from "@/db/mutations";
 import {
   getTeamMatches,
   getTeamPage,
+  leagueHasSchedule,
   listLeagueTeamsExcept,
 } from "@/db/queries";
 import { getSession } from "@/lib/auth-guard";
@@ -41,8 +40,6 @@ const ROLE_LABEL = {
   co_captain: "Co-captain",
   player: "Player",
 } as const;
-
-const ROLE_ORDER = { captain: 0, co_captain: 1, player: 2 } as const;
 
 export default async function TeamPage({
   params,
@@ -68,7 +65,9 @@ export default async function TeamPage({
 
   await autoConfirmStaleScores();
   const teamMatches = await getTeamMatches(teamId);
-  const opponents = isManager
+  const hasSchedule = await leagueHasSchedule(league.id);
+  // Ad-hoc proposals are only offered when the admin hasn't set a schedule.
+  const opponents = isManager && !hasSchedule
     ? await listLeagueTeamsExcept(league.id, teamId)
     : [];
   const isAdmin = session?.user.role === "admin";
@@ -77,9 +76,13 @@ export default async function TeamPage({
   const viewerActive = members.some((m) => m.userId === viewerId);
   const viewerPending = pendingRequests.some((m) => m.userId === viewerId);
 
-  const roster = [...members].sort(
-    (a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role],
+  const roster = [...members].sort((a, b) =>
+    (a.name ?? a.email).localeCompare(b.name ?? b.email, undefined, {
+      sensitivity: "base",
+    }),
   );
+  const captain = roster.find((m) => m.role === "captain");
+  const coCaptain = roster.find((m) => m.role === "co_captain");
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,10 +129,13 @@ export default async function TeamPage({
             <CardHeader>
               <CardTitle className="text-base">Roster</CardTitle>
               <CardDescription>
-                Captain:{" "}
-                {roster.find((m) => m.role === "captain")?.name ??
-                  roster.find((m) => m.role === "captain")?.email ??
-                  "not set"}
+                <span className="block">
+                  Captain: {captain?.name ?? captain?.email ?? "not set"}
+                </span>
+                <span className="block">
+                  Co-captain:{" "}
+                  {coCaptain?.name ?? coCaptain?.email ?? "not set"}
+                </span>
               </CardDescription>
               {isAdmin && (
                 <CardAction>
@@ -154,51 +160,19 @@ export default async function TeamPage({
                           {m.name ?? m.email}
                           {m.userId === viewerId && " (you)"}
                         </span>
-                        <Badge
-                          variant={m.role === "player" ? "outline" : "secondary"}
-                        >
-                          {ROLE_LABEL[m.role]}
-                        </Badge>
+                        {m.role !== "player" && (
+                          <Badge variant="secondary">{ROLE_LABEL[m.role]}</Badge>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        {isLeadership &&
-                          m.role !== "captain" &&
-                          (m.role === "co_captain" ? (
-                            <ActionButton
-                              action={demoteCoCaptainAction.bind(
-                                null,
-                                teamId,
-                                m.membershipId,
-                              )}
-                              label="Remove co-captain"
-                              variant="outline"
-                            />
-                          ) : (
-                            <ActionButton
-                              action={promoteCoCaptainAction.bind(
-                                null,
-                                teamId,
-                                m.membershipId,
-                              )}
-                              label="Make co-captain"
-                              variant="outline"
-                            />
-                          ))}
-                        {isManager &&
-                          m.role !== "captain" &&
-                          m.userId !== viewerId && (
-                            <ActionButton
-                              action={removeMemberAction.bind(
-                                null,
-                                teamId,
-                                m.membershipId,
-                              )}
-                              label="Remove"
-                              variant="destructive"
-                              confirm={`Remove ${m.name ?? m.email} from ${team.name}?`}
-                            />
-                          )}
-                      </div>
+                      <RosterRowActions
+                        teamId={teamId}
+                        membershipId={m.membershipId}
+                        memberName={m.name ?? m.email}
+                        role={m.role}
+                        canLead={isLeadership}
+                        canManage={isManager}
+                        isSelf={m.userId === viewerId}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -211,12 +185,14 @@ export default async function TeamPage({
             <CardHeader>
               <CardTitle className="text-base">Schedule</CardTitle>
               <CardDescription>
-                Propose matches against other teams in {league.name}; the other
-                captain accepts or counters with a new time.
+                {hasSchedule
+                  ? "Your league schedule is set. Set the date & time for your home matches; away matches are scheduled by the host."
+                  : `Propose matches against other teams in ${league.name}; the other captain accepts or counters with a new time.`}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               {isManager &&
+                !hasSchedule &&
                 (opponents.length > 0 ? (
                   <ProposeMatchForm teamId={teamId} opponents={opponents} />
                 ) : (
@@ -244,6 +220,7 @@ export default async function TeamPage({
                         location={m.location}
                         status={m.status}
                         isProposer={m.proposedByTeamId === teamId}
+                        isLeagueFixture={m.proposedByTeamId === null}
                         canManage={isManager}
                         isHome={isHome}
                         games={m.games.map((g) => ({
@@ -259,7 +236,10 @@ export default async function TeamPage({
               )}
             </CardContent>
           </Card>
+        </div>
 
+        {/* Right column */}
+        <div className="flex flex-col gap-6">
           {/* Pending requests (managers only) */}
           {isManager && (
             <Card>
@@ -315,10 +295,7 @@ export default async function TeamPage({
               </CardContent>
             </Card>
           )}
-        </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-6">
           {/* Join / membership status */}
           {!viewerActive && (
             <Card>

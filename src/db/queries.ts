@@ -1,4 +1,15 @@
-import { type SQL, and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import {
+  type SQL,
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./index";
 import {
@@ -207,6 +218,7 @@ export async function getTeamByInviteToken(token: string) {
 // ---------- Phase 4: scheduling ----------
 
 export type MatchStatus =
+  | "unscheduled"
   | "proposed"
   | "scheduled"
   | "completed"
@@ -345,6 +357,23 @@ export async function getMatch(matchId: string) {
 /** Disputed matches across all leagues — for the admin console. */
 export async function getDisputedMatches(): Promise<MatchView[]> {
   return selectMatches(eq(matches.status, "disputed"));
+}
+
+/** All non-cancelled fixtures in a league — for the admin schedule view. */
+export async function getLeagueMatches(leagueId: string): Promise<MatchView[]> {
+  return selectMatches(
+    and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")),
+  );
+}
+
+/** True once a league has any non-cancelled fixture (i.e. a schedule exists). */
+export async function leagueHasSchedule(leagueId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(matches)
+    .where(and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")))
+    .limit(1);
+  return Number(row?.n ?? 0) > 0;
 }
 
 // ---------- Phase 5: standings ----------

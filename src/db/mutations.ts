@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, count, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   leagues,
@@ -254,6 +254,30 @@ export async function removeMember(teamId: string, membershipId: string) {
   await db.delete(teamMemberships).where(eq(teamMemberships.id, membershipId));
 }
 
+export async function setCaptain(teamId: string, membershipId: string) {
+  const membership = await loadMembershipInTeam(membershipId, teamId);
+  if (membership.status !== "active") {
+    throw new Error("Only active members can be made captain.");
+  }
+  if (membership.role === "captain") {
+    throw new Error("That member is already the captain.");
+  }
+  // Captain is singular per team — demote the current one to player first.
+  await db
+    .update(teamMemberships)
+    .set({ role: "player", updatedAt: new Date() })
+    .where(
+      and(
+        eq(teamMemberships.teamId, teamId),
+        eq(teamMemberships.role, "captain"),
+      ),
+    );
+  await db
+    .update(teamMemberships)
+    .set({ role: "captain", updatedAt: new Date() })
+    .where(eq(teamMemberships.id, membershipId));
+}
+
 export async function setCoCaptain(teamId: string, membershipId: string) {
   const membership = await loadMembershipInTeam(membershipId, teamId);
   if (membership.status !== "active") {
@@ -447,6 +471,20 @@ export async function cancelMatch(matchId: string) {
   if (!CANCELLABLE.includes(match.status as (typeof CANCELLABLE)[number])) {
     throw new Error("This match can no longer be cancelled.");
   }
+  // Admin-generated league fixtures (no proposing team) stay in the schedule —
+  // cancelling just clears the date so the home captain can reschedule.
+  if (match.proposedByTeamId === null) {
+    await db
+      .update(matches)
+      .set({
+        status: "unscheduled",
+        scheduledAt: null,
+        location: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(matches.id, matchId));
+    return;
+  }
   await db
     .update(matches)
     .set({ status: "cancelled", updatedAt: new Date() })
@@ -594,6 +632,140 @@ export async function resolveScore(
       updatedAt: new Date(),
     })
     .where(eq(matches.id, matchId));
+}
+
+// ---------- Phase 6: admin-generated season schedule ----------
+
+/** Statuses that represent a played/scored match (never auto-wiped). */
+const RESULT_STATUSES = ["completed", "confirmed", "disputed"] as const;
+/** Statuses safe to delete when clearing/regenerating a schedule. */
+const CLEARABLE_STATUSES = [
+  "unscheduled",
+  "scheduled",
+  "proposed",
+  "cancelled",
+] as const;
+
+export const MAX_MEETINGS = 4;
+
+/**
+ * Creates a full round-robin of fixtures for a league: every pair of teams
+ * meets `meetings` times, with home/away alternating for fairness. Fixtures
+ * start `unscheduled` (no date) — the home captain sets the time later.
+ * Refuses to run if the league already has any non-cancelled match.
+ */
+export async function generateLeagueSchedule(
+  leagueId: string,
+  meetings: number,
+) {
+  if (!Number.isInteger(meetings) || meetings < 1 || meetings > MAX_MEETINGS) {
+    throw new Error(`Pick how many times teams meet (1–${MAX_MEETINGS}).`);
+  }
+
+  const teamRows = await db
+    .select({ id: teams.id })
+    .from(teams)
+    .where(eq(teams.leagueId, leagueId))
+    .orderBy(asc(teams.name));
+  if (teamRows.length < 2) {
+    throw new Error("Add at least two teams before generating a schedule.");
+  }
+
+  const [existing] = await db
+    .select({ n: count() })
+    .from(matches)
+    .where(and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")));
+  if (Number(existing?.n ?? 0) > 0) {
+    throw new Error(
+      "This league already has a schedule. Clear it before generating a new one.",
+    );
+  }
+
+  const ids = teamRows.map((t) => t.id);
+  const rows: (typeof matches.$inferInsert)[] = [];
+  let pairIndex = 0;
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      for (let m = 0; m < meetings; m++) {
+        // Alternate home per meeting, and flip the starting host per pair so
+        // home games spread evenly across the league.
+        const firstIsHome = (m + pairIndex) % 2 === 0;
+        rows.push({
+          leagueId,
+          homeTeamId: firstIsHome ? ids[i] : ids[j],
+          awayTeamId: firstIsHome ? ids[j] : ids[i],
+          proposedByTeamId: null,
+          scheduledAt: null,
+          location: null,
+          status: "unscheduled",
+        });
+      }
+      pairIndex++;
+    }
+  }
+
+  await db.insert(matches).values(rows);
+  return rows.length;
+}
+
+/**
+ * Home captain (or admin) sets the date/time + location for a fixture they
+ * host. Allowed while the match is unscheduled or already scheduled (i.e.
+ * before any score is entered); moves it to `scheduled`.
+ */
+export async function setFixtureDateTime(
+  matchId: string,
+  homeTeamId: string,
+  scheduledAt: Date,
+  location: string | null,
+) {
+  const [match] = await db
+    .select()
+    .from(matches)
+    .where(eq(matches.id, matchId))
+    .limit(1);
+  if (!match) throw new Error("Match not found.");
+  if (match.homeTeamId !== homeTeamId) {
+    throw new Error("Only the home team can set the date and time.");
+  }
+  if (match.status !== "unscheduled" && match.status !== "scheduled") {
+    throw new Error("This match can no longer be rescheduled here.");
+  }
+  await db
+    .update(matches)
+    .set({ scheduledAt, location, status: "scheduled", updatedAt: new Date() })
+    .where(eq(matches.id, matchId));
+}
+
+/**
+ * Removes a league's generated fixtures. Refuses if any match already has a
+ * score (completed/confirmed/disputed) so results are never lost.
+ */
+export async function clearLeagueSchedule(leagueId: string) {
+  const [withResults] = await db
+    .select({ n: count() })
+    .from(matches)
+    .where(
+      and(
+        eq(matches.leagueId, leagueId),
+        inArray(matches.status, RESULT_STATUSES),
+      ),
+    );
+  if (Number(withResults?.n ?? 0) > 0) {
+    throw new Error(
+      "Some matches already have scores — clear those individually first.",
+    );
+  }
+  const deleted = await db
+    .delete(matches)
+    .where(
+      and(
+        eq(matches.leagueId, leagueId),
+        inArray(matches.status, CLEARABLE_STATUSES),
+      ),
+    )
+    .returning({ id: matches.id });
+  return deleted.length;
 }
 
 /** Confirms any score that has sat unconfirmed for 72h. Idempotent. */

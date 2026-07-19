@@ -86,6 +86,8 @@ export const membershipStatus = pgEnum("membership_status", [
 ]);
 
 export const matchStatus = pgEnum("match_status", [
+  // Admin-generated fixture awaiting the home captain to set a date/time.
+  "unscheduled",
   "proposed",
   "scheduled",
   "completed",

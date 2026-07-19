@@ -1,26 +1,15 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { listPublicLeagues } from "@/db/queries";
 
-function fmt(d: Date | null) {
-  return d
-    ? new Date(d).toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "2-digit",
-      })
-    : null;
-}
-
-function dateRange(start: Date | null, end: Date | null) {
-  const s = fmt(start);
-  const e = fmt(end);
-  if (s && e) return `${s} – ${e}`;
-  if (s) return `Starts ${s}`;
-  if (e) return `Ends ${e}`;
-  return "Dates TBD";
+function formatDate(d: Date | null) {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+  });
 }
 
 export default async function LeaguesPage() {
@@ -33,34 +22,49 @@ export default async function LeaguesPage() {
         description="Browse leagues and view standings."
       />
 
-      {leagues.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No open leagues right now. Check back soon.
-        </p>
-      ) : (
-        <div className="flex flex-col divide-y">
-          {leagues.map((league) => (
-            <Link
-              key={league.id}
-              href={`/leagues/${league.id}`}
-              className="-mx-3 flex items-center justify-between gap-4 px-3 py-4 hover:bg-muted"
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{league.name}</span>
-                {league.status === "completed" && (
-                  <Badge variant="secondary">Completed</Badge>
-                )}
+      <Card>
+        <CardContent>
+          {leagues.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No open leagues right now. Check back soon.
+            </p>
+          ) : (
+            <div className="flex flex-col divide-y">
+              <div className="-mx-2 grid grid-cols-[2fr_1fr_1.5fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                <span>League Name</span>
+                <span>Level</span>
+                <span>Season</span>
               </div>
-              <div className="flex items-center gap-6">
-                <span className="text-sm text-muted-foreground">
-                  {dateRange(league.seasonStart, league.seasonEnd)}
-                </span>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+              {leagues.map((league) => {
+                const start = formatDate(league.seasonStart);
+                const end = formatDate(league.seasonEnd);
+                const season = start
+                  ? `${start}${end ? ` – ${end}` : ""}`
+                  : "—";
+                return (
+                  <div
+                    key={league.id}
+                    className="relative -mx-2 grid grid-cols-[2fr_1fr_1.5fr] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    <Link
+                      href={`/leagues/${league.id}`}
+                      className="min-w-0 truncate font-medium after:absolute after:inset-0"
+                    >
+                      {league.name}
+                    </Link>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      {league.skillLevel}
+                    </span>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      {season}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

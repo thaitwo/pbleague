@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -9,9 +11,21 @@ import {
 import { CreateTeamDialog } from "@/components/admin/create-team-dialog";
 import { TeamRowActions } from "@/components/admin/team-row-actions";
 import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
+import { ScheduleControls } from "@/components/admin/schedule-controls";
 import { PageHeader } from "@/components/page-header";
 import { deleteTeamAction } from "@/app/admin/actions";
-import { getLeagueDetail } from "@/db/queries";
+import { getLeagueDetail, getLeagueMatches, type MatchStatus } from "@/db/queries";
+import { formatDateTime } from "@/lib/format";
+
+const FIXTURE_STATUS_LABEL: Record<MatchStatus, string> = {
+  unscheduled: "Not scheduled",
+  proposed: "Proposed",
+  scheduled: "Scheduled",
+  completed: "Awaiting confirmation",
+  confirmed: "Final",
+  disputed: "Disputed",
+  cancelled: "Cancelled",
+};
 
 function toDateInput(d: Date | null) {
   return d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -27,6 +41,7 @@ export default async function LeagueDetailPage({
   if (!detail) notFound();
 
   const { league, teams } = detail;
+  const fixtures = await getLeagueMatches(league.id);
 
   return (
     <>
@@ -104,6 +119,59 @@ export default async function LeagueDetailPage({
                       )}
                     />
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Schedule</CardTitle>
+          <CardAction>
+            <ScheduleControls
+              leagueId={league.id}
+              hasFixtures={fixtures.length > 0}
+              canGenerate={teams.length >= 2}
+            />
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {fixtures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {teams.length < 2
+                ? "Add at least two teams, then generate a season schedule."
+                : "No schedule yet — generate one to create every matchup. Home captains then set the date & time for their home matches."}
+            </p>
+          ) : (
+            <div className="flex flex-col divide-y">
+              <div className="-mx-2 grid grid-cols-[1.5fr_1.5fr_1fr_1.25fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                <span>Home</span>
+                <span>Away</span>
+                <span>Status</span>
+                <span>Date &amp; time</span>
+              </div>
+              {fixtures.map((m) => (
+                <div
+                  key={m.id}
+                  className="-mx-2 grid grid-cols-[1.5fr_1.5fr_1fr_1.25fr] items-center gap-4 px-2 py-3"
+                >
+                  <span className="min-w-0 truncate font-medium">
+                    {m.homeTeamName}
+                  </span>
+                  <span className="min-w-0 truncate text-sm text-muted-foreground">
+                    {m.awayTeamName}
+                  </span>
+                  <Badge
+                    variant={m.status === "unscheduled" ? "outline" : "secondary"}
+                    className="justify-self-start"
+                  >
+                    {FIXTURE_STATUS_LABEL[m.status]}
+                  </Badge>
+                  <span className="min-w-0 truncate text-sm text-muted-foreground">
+                    {m.scheduledAt ? formatDateTime(m.scheduledAt) : "—"}
+                  </span>
                 </div>
               ))}
             </div>

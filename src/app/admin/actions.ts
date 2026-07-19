@@ -183,3 +183,47 @@ export async function addPlayerAction(
   revalidatePath(`/admin/leagues/${leagueId}`);
   return { ok: true };
 }
+
+// ---------- Season scheduling ----------
+
+export type ScheduleActionResult = { error?: string; message?: string };
+
+function revalidateSchedule(leagueId: string) {
+  revalidatePath(`/admin/leagues/${leagueId}`);
+  revalidatePath(`/leagues/${leagueId}`);
+  revalidatePath("/dashboard");
+}
+
+export async function generateScheduleAction(
+  leagueId: string,
+  meetings: number,
+): Promise<ScheduleActionResult> {
+  await requireAdmin();
+  let created: number;
+  try {
+    created = await mutations.generateLeagueSchedule(leagueId, meetings);
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Could not generate the schedule.",
+    };
+  }
+  revalidateSchedule(leagueId);
+  return {
+    message: `Schedule created — ${created} match${created === 1 ? "" : "es"}.`,
+  };
+}
+
+export async function clearScheduleAction(
+  leagueId: string,
+): Promise<ScheduleActionResult> {
+  await requireAdmin();
+  try {
+    await mutations.clearLeagueSchedule(leagueId);
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Could not clear the schedule.",
+    };
+  }
+  revalidateSchedule(leagueId);
+  return { message: "Schedule cleared." };
+}

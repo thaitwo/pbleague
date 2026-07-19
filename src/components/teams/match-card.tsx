@@ -16,6 +16,7 @@ import {
   disputeScoreAction,
   enterScoreAction,
   resolveScoreAction,
+  setFixtureTimeAction,
   type RowActionResult,
 } from "@/app/teams/actions";
 import type { MatchStatus } from "@/db/queries";
@@ -24,6 +25,7 @@ const STATUS_VARIANT: Record<
   MatchStatus,
   "default" | "secondary" | "outline" | "destructive"
 > = {
+  unscheduled: "outline",
   proposed: "outline",
   scheduled: "default",
   completed: "secondary",
@@ -33,6 +35,7 @@ const STATUS_VARIANT: Record<
 };
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
+  unscheduled: "Not scheduled",
   proposed: "Proposed",
   scheduled: "Scheduled",
   completed: "Awaiting confirmation",
@@ -51,6 +54,7 @@ type MatchCardProps = {
   location: string | null;
   status: MatchStatus;
   isProposer: boolean;
+  isLeagueFixture: boolean;
   canManage: boolean;
   isHome: boolean;
   games: Game[];
@@ -66,6 +70,7 @@ export function MatchCard({
   location,
   status,
   isProposer,
+  isLeagueFixture,
   canManage,
   isHome,
   games,
@@ -82,6 +87,9 @@ export function MatchCard({
 
   const awaitingMe = status === "proposed" && !isProposer;
   const awaitingThem = status === "proposed" && isProposer;
+  // Admin-generated fixture with no date yet — the home captain sets the time.
+  const isUnscheduled = status === "unscheduled";
+  const canSetTime = canManage && isUnscheduled && isHome;
 
   const myGamesWon = games.filter((g) => g.my > g.opp).length;
   const oppGamesWon = games.filter((g) => g.opp > g.my).length;
@@ -134,6 +142,16 @@ export function MatchCard({
         </div>
       )}
 
+      {isUnscheduled && !isHome && (
+        <p className="text-sm text-muted-foreground">
+          Waiting for {opponentName} (home) to set the date & time.
+        </p>
+      )}
+      {isUnscheduled && isHome && !canManage && (
+        <p className="text-sm text-muted-foreground">
+          Your team hosts this match — a captain needs to set the date & time.
+        </p>
+      )}
       {awaitingThem && (
         <p className="text-sm text-muted-foreground">
           Waiting for {opponentName} to accept or counter.
@@ -160,6 +178,15 @@ export function MatchCard({
       {/* Scheduling actions */}
       {canManage && (
         <div className="flex flex-wrap gap-2">
+          {canSetTime && (
+            <Button
+              size="sm"
+              disabled={pending}
+              onClick={() => setCountering((v) => !v)}
+            >
+              {countering ? "Close" : "Set date & time"}
+            </Button>
+          )}
           {awaitingMe && (
             <>
               <Button
@@ -227,20 +254,40 @@ export function MatchCard({
               {scoreMode ? "Close" : "Re-enter score"}
             </Button>
           )}
-          {(status === "proposed" || status === "scheduled") && (
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={pending}
-              onClick={() => {
-                if (window.confirm("Cancel this match?")) {
-                  run(() => cancelMatchAction(matchId));
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          )}
+          {isLeagueFixture
+            ? status === "scheduled" &&
+              isHome && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Clear this match's date & time? You can set a new one.",
+                      )
+                    ) {
+                      run(() => cancelMatchAction(matchId));
+                    }
+                  }}
+                >
+                  Clear date &amp; time
+                </Button>
+              )
+            : (status === "proposed" || status === "scheduled") && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={pending}
+                  onClick={() => {
+                    if (window.confirm("Cancel this match?")) {
+                      run(() => cancelMatchAction(matchId));
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
         </div>
       )}
 
@@ -262,22 +309,24 @@ export function MatchCard({
         </div>
       )}
 
-      {/* Counter-proposal form */}
-      {canManage && awaitingMe && countering && (
+      {/* Date & time form — counter-proposal or setting a fixture's time */}
+      {canManage && countering && (awaitingMe || canSetTime) && (
         <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-end">
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`counter-when-${matchId}`}>New date & time</Label>
+            <Label htmlFor={`when-${matchId}`}>
+              {canSetTime ? "Date & time" : "New date & time"}
+            </Label>
             <Input
-              id={`counter-when-${matchId}`}
+              id={`when-${matchId}`}
               type="datetime-local"
               value={when}
               onChange={(e) => setWhen(e.target.value)}
             />
           </div>
           <div className="flex flex-1 flex-col gap-2">
-            <Label htmlFor={`counter-loc-${matchId}`}>Location</Label>
+            <Label htmlFor={`loc-${matchId}`}>Location</Label>
             <Input
-              id={`counter-loc-${matchId}`}
+              id={`loc-${matchId}`}
               value={loc}
               onChange={(e) => setLoc(e.target.value)}
               placeholder="Optional"
@@ -288,13 +337,17 @@ export function MatchCard({
             disabled={pending}
             onClick={() => {
               if (!when) {
-                toast.error("Pick a new date and time.");
+                toast.error("Pick a date and time.");
                 return;
               }
-              run(() => counterMatchAction(matchId, myTeamId, when, loc));
+              run(() =>
+                canSetTime
+                  ? setFixtureTimeAction(matchId, myTeamId, when, loc)
+                  : counterMatchAction(matchId, myTeamId, when, loc),
+              );
             }}
           >
-            Send counter
+            {canSetTime ? "Save" : "Send counter"}
           </Button>
         </div>
       )}

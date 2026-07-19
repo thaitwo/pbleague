@@ -97,6 +97,23 @@ export async function removeMemberAction(
   return { message: "Member removed." };
 }
 
+export async function promoteCaptainAction(
+  teamId: string,
+  membershipId: string,
+): Promise<RowActionResult> {
+  const session = await getSession();
+  if (!(await canManageLeadership(session, teamId))) {
+    return fail("Only the captain or an admin can change the captain.");
+  }
+  try {
+    await mutations.setCaptain(teamId, membershipId);
+  } catch (e) {
+    return fail(errorMessage(e));
+  }
+  revalidateTeam(teamId);
+  return { message: "Captain updated." };
+}
+
 export async function promoteCoCaptainAction(
   teamId: string,
   membershipId: string,
@@ -269,6 +286,39 @@ export async function counterMatchAction(
   return { message: "Counter-proposal sent." };
 }
 
+export async function setFixtureTimeAction(
+  matchId: string,
+  homeTeamId: string,
+  when: string,
+  location: string,
+): Promise<RowActionResult> {
+  const session = await getSession();
+  if (!(await canManageTeam(session, homeTeamId))) {
+    return fail("Only the home team's captain can set the date and time.");
+  }
+  const match = await getMatch(matchId);
+  if (!match) return fail("Match not found.");
+  let scheduledAt: Date;
+  try {
+    scheduledAt = parseWhen(when);
+  } catch (e) {
+    return fail(errorMessage(e));
+  }
+  try {
+    await mutations.setFixtureDateTime(
+      matchId,
+      homeTeamId,
+      scheduledAt,
+      location.trim() || null,
+    );
+  } catch (e) {
+    return fail(errorMessage(e));
+  }
+  revalidateMatch(match.homeTeamId, match.awayTeamId);
+  await notifyMatchAccepted(matchId).catch(() => {});
+  return { message: "Match scheduled." };
+}
+
 export async function cancelMatchAction(
   matchId: string,
 ): Promise<RowActionResult> {
@@ -281,13 +331,18 @@ export async function cancelMatchAction(
   if (!allowed) {
     return fail("You don't have permission to cancel this match.");
   }
+  const isLeagueFixture = match.proposedByTeamId === null;
   try {
     await mutations.cancelMatch(matchId);
   } catch (e) {
     return fail(errorMessage(e));
   }
   revalidateMatch(match.homeTeamId, match.awayTeamId);
-  return { message: "Match cancelled." };
+  return {
+    message: isLeagueFixture
+      ? "Date & time cleared — the home team can set a new one."
+      : "Match cancelled.",
+  };
 }
 
 // ---------- Phase 5: scores ----------
