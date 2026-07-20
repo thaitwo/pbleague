@@ -71,113 +71,123 @@ export default async function LeagueStandingsPage({
         backHref="/leagues"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Standings</CardTitle>
-          <CardDescription>
-            {anyPlayed
-              ? "Ranked by wins, then head-to-head, game win %, and point differential."
-              : "No matches have been played yet."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {standings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No teams in this league yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-2 font-medium">#</th>
-                    <th className="py-2 pr-2 font-medium">Team</th>
-                    <th className="py-2 pr-2 text-right font-medium">W</th>
-                    <th className="py-2 pr-2 text-right font-medium">L</th>
-                    <th className="py-2 pr-2 text-right font-medium">Games</th>
-                    <th className="py-2 pr-2 text-right font-medium">Diff</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((r, i) => (
-                    <tr key={r.teamId} className="border-b last:border-0">
-                      <td className="py-2 pr-2 text-muted-foreground">
-                        {i + 1}
-                      </td>
-                      <td className="py-2 pr-2">
-                        <Link
-                          href={`/teams/${r.teamId}`}
-                          className="font-medium hover:underline"
-                        >
-                          {r.teamName}
-                        </Link>
-                      </td>
-                      <td className="py-2 pr-2 text-right">{r.wins}</td>
-                      <td className="py-2 pr-2 text-right">{r.losses}</td>
-                      <td className="py-2 pr-2 text-right text-muted-foreground">
-                        {r.gamesWon}–{r.gamesLost}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-muted-foreground">
-                        {fmtDiff(r.pointDiff)}
-                      </td>
-                    </tr>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Standings — left column */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Standings</CardTitle>
+              <CardDescription>
+                {anyPlayed
+                  ? "Ranked by wins, then head-to-head, game win %, and point differential."
+                  : "No matches have been played yet."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {standings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No teams in this league yet.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-muted-foreground">
+                        <th className="py-2 pr-2 font-medium">#</th>
+                        <th className="py-2 pr-2 font-medium">Team</th>
+                        <th className="py-2 pr-2 text-right font-medium">W</th>
+                        <th className="py-2 pr-2 text-right font-medium">L</th>
+                        <th className="py-2 pr-2 text-right font-medium">
+                          Games
+                        </th>
+                        <th className="py-2 pr-2 text-right font-medium">
+                          Diff
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {standings.map((r, i) => (
+                        <tr key={r.teamId} className="border-b last:border-0">
+                          <td className="py-2 pr-2 text-muted-foreground">
+                            {i + 1}
+                          </td>
+                          <td className="py-2 pr-2">
+                            <Link
+                              href={`/teams/${r.teamId}`}
+                              className="font-medium hover:underline"
+                            >
+                              {r.teamName}
+                            </Link>
+                          </td>
+                          <td className="py-2 pr-2 text-right">{r.wins}</td>
+                          <td className="py-2 pr-2 text-right">{r.losses}</td>
+                          <td className="py-2 pr-2 text-right text-muted-foreground">
+                            {r.gamesWon}–{r.gamesLost}
+                          </td>
+                          <td className="py-2 pr-2 text-right text-muted-foreground">
+                            {fmtDiff(r.pointDiff)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent + Upcoming — right column */}
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recent.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No results yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {recent.map((m) => (
+                    <li key={m.id} className="border-b pb-2 last:border-0">
+                      <div>{resultLine(m)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDateTime(m.scheduledAt)}
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recent.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No results yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-2 text-sm">
-                {recent.map((m) => (
-                  <li key={m.id} className="border-b pb-2 last:border-0">
-                    <div>{resultLine(m)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDateTime(m.scheduledAt)}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nothing scheduled yet.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2 text-sm">
-                {upcoming.map((m) => (
-                  <li key={m.id} className="border-b pb-2 last:border-0">
-                    <div>
-                      {m.homeTeamName} vs {m.awayTeamName}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDateTime(m.scheduledAt)}
-                      {m.location ? ` · ${m.location}` : ""}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Upcoming</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {upcoming.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nothing scheduled yet.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {upcoming.map((m) => (
+                    <li key={m.id} className="border-b pb-2 last:border-0">
+                      <div>
+                        {m.homeTeamName} vs {m.awayTeamName}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDateTime(m.scheduledAt)}
+                        {m.location ? ` · ${m.location}` : ""}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
