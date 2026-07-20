@@ -96,7 +96,6 @@ export default async function LeagueStandingsPage({
                     <th className="py-2 pr-2 text-right font-medium">L</th>
                     <th className="py-2 pr-2 text-right font-medium">Games</th>
                     <th className="py-2 pr-2 text-right font-medium">Diff</th>
-                    <th className="py-2 pr-2 text-right font-medium">Streak</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,9 +119,6 @@ export default async function LeagueStandingsPage({
                       </td>
                       <td className="py-2 pr-2 text-right text-muted-foreground">
                         {fmtDiff(r.pointDiff)}
-                      </td>
-                      <td className="py-2 pr-2 text-right text-muted-foreground">
-                        {r.streak}
                       </td>
                     </tr>
                   ))}
