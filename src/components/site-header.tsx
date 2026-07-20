@@ -1,12 +1,18 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MainNav, type NavItem } from "@/components/main-nav";
 import { UserMenu } from "@/components/user-menu";
 import { auth } from "@/lib/auth";
 
 export async function SiteHeader() {
   const session = await auth.api.getSession({ headers: await headers() });
+
+  const navItems: NavItem[] = [{ href: "/leagues", label: "Leagues" }];
+  if (session) navItems.push({ href: "/dashboard", label: "Dashboard" });
+  if (session?.user.role === "admin") {
+    navItems.push({ href: "/admin", label: "Admin" });
+  }
 
   return (
     <header className="border-b">
@@ -15,30 +21,11 @@ export async function SiteHeader() {
           <Link href="/" className="text-xl font-bold tracking-tight">
             PBL
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/leagues" className="hover:text-foreground">
-              Leagues
-            </Link>
-            {session && (
-              <Link href="/dashboard" className="hover:text-foreground">
-                Dashboard
-              </Link>
-            )}
-            {session?.user.role === "admin" && (
-              <Link href="/admin" className="hover:text-foreground">
-                Admin
-              </Link>
-            )}
-          </nav>
+          <MainNav items={navItems} />
         </div>
         <div className="flex items-center gap-3">
           {session ? (
-            <>
-              {session.user.role === "admin" && (
-                <Badge variant="secondary">Admin</Badge>
-              )}
-              <UserMenu name={session.user.name} email={session.user.email} />
-            </>
+            <UserMenu name={session.user.name} email={session.user.email} />
           ) : (
             <>
               <Button variant="ghost" size="sm" render={<Link href="/sign-in" />}>
