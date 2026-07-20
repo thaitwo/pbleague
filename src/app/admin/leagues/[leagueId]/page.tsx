@@ -31,6 +31,24 @@ function toDateInput(d: Date | null) {
   return d ? new Date(d).toISOString().slice(0, 10) : "";
 }
 
+function fmtDate(d: Date | null) {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function seasonLabel(start: Date | null, end: Date | null) {
+  const s = fmtDate(start);
+  const e = fmtDate(end);
+  if (s && e) return `${s} – ${e}`;
+  if (s) return `Starts ${s}`;
+  if (e) return `Ends ${e}`;
+  return undefined;
+}
+
 export default async function LeagueDetailPage({
   params,
 }: {
@@ -47,6 +65,7 @@ export default async function LeagueDetailPage({
     <>
       <PageHeader
         title={league.name}
+        description={seasonLabel(league.seasonStart, league.seasonEnd)}
         backHref="/admin"
         action={
           <div className="flex items-center gap-2">

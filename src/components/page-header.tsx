@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function PageHeader({
   title,
@@ -35,7 +36,11 @@ export function PageHeader({
           ) : null}
         </div>
         {description ? (
-          <p className="text-muted-foreground">{description}</p>
+          // Indent to line up with the title text when a back button offsets it
+          // (icon-sm size-7 + gap-3 = 2.5rem).
+          <p className={cn("text-muted-foreground", backHref && "pl-10")}>
+            {description}
+          </p>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
