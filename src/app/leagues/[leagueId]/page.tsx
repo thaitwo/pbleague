@@ -113,7 +113,7 @@ export default async function LeagueStandingsPage({
                           </td>
                           <td className="py-2 pr-2">
                             <Link
-                              href={`/teams/${r.teamId}`}
+                              href={`/teams/${r.teamId}?from=league`}
                               className="font-medium hover:underline"
                             >
                               {r.teamName}

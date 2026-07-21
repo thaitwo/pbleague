@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,23 @@ export async function SiteHeader() {
           <Link href="/" className="text-xl font-bold tracking-tight">
             PBL
           </Link>
-          <MainNav items={navItems} />
+          <Suspense
+            fallback={
+              <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-md px-2.5 py-1.5 hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            }
+          >
+            <MainNav items={navItems} />
+          </Suspense>
         </div>
         <div className="flex items-center gap-3">
           {session ? (

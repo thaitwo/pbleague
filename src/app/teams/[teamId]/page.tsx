@@ -91,7 +91,9 @@ export default async function TeamPage({
         backHref={
           from === "admin" && isAdmin
             ? `/admin/leagues/${league.id}`
-            : "/leagues"
+            : from === "league"
+              ? `/leagues/${league.id}`
+              : "/leagues"
         }
         description={`${members.length}${
           team.rosterCap ? `/${team.rosterCap}` : ""
