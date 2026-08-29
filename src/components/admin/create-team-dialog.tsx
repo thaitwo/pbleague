@@ -12,11 +12,27 @@ import {
 } from "@/components/ui/dialog";
 import { CreateTeamForm } from "@/components/admin/create-team-form";
 
-export function CreateTeamDialog({ leagueId }: { leagueId: string }) {
-  const [open, setOpen] = useState(false);
+export function CreateTeamDialog({
+  leagueId,
+  open: openProp,
+  onOpenChange,
+  trigger = true,
+}: {
+  leagueId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: boolean;
+}) {
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) => {
+    if (!isControlled) setOpenState(o);
+    onOpenChange?.(o);
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm">Add team</Button>} />
+      {trigger && <DialogTrigger render={<Button size="sm">Add team</Button>} />}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New team</DialogTitle>

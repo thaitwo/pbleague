@@ -23,24 +23,38 @@ type EditLeagueDialogProps = {
     seasonStart: string;
     seasonEnd: string;
   };
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: boolean;
 };
 
 export function EditLeagueDialog({
   leagueId,
   leagueName,
   initial,
+  open: openProp,
+  onOpenChange,
+  trigger = true,
 }: EditLeagueDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) => {
+    if (!isControlled) setOpenState(o);
+    onOpenChange?.(o);
+  };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="sm">
-            Edit league
-          </Button>
-        }
-      />
+      {trigger && (
+        <DialogTrigger
+          render={
+            <Button variant="outline" size="sm">
+              Edit league
+            </Button>
+          }
+        />
+      )}
       <DialogContent
         className={
           confirmingDelete

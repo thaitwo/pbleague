@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateLeagueDialog } from "@/components/admin/create-league-dialog";
+import { LeagueRowActions } from "@/components/admin/league-row-actions";
 import { PageHeader } from "@/components/page-header";
 import { getDisputedMatches, listLeagues } from "@/db/queries";
 
@@ -25,6 +26,10 @@ function formatDate(d: Date | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function toDateInput(d: Date | null) {
+  return d ? new Date(d).toISOString().slice(0, 10) : "";
 }
 
 export default async function AdminPage() {
@@ -55,11 +60,12 @@ export default async function AdminPage() {
                 </p>
               ) : (
                 <div className="flex flex-col divide-y">
-                  <div className="-mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                  <div className="-mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr_1.75rem] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
                     <span>League Name</span>
                     <span>Level</span>
                     <span>Season</span>
                     <span>Status</span>
+                    <span className="sr-only">Actions</span>
                   </div>
                   {leagues.map((league) => {
                     const start = formatDate(league.seasonStart);
@@ -70,7 +76,7 @@ export default async function AdminPage() {
                     return (
                       <div
                         key={league.id}
-                        className="relative -mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
+                        className="relative -mx-2 grid grid-cols-[2fr_1fr_1.5fr_1fr_1.75rem] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
                       >
                         <Link
                           href={`/admin/leagues/${league.id}`}
@@ -90,6 +96,18 @@ export default async function AdminPage() {
                         >
                           {league.status}
                         </Badge>
+                        <div className="relative z-10">
+                          <LeagueRowActions
+                            league={{
+                              id: league.id,
+                              name: league.name,
+                              skillLevel: league.skillLevel,
+                              status: league.status,
+                              seasonStart: toDateInput(league.seasonStart),
+                              seasonEnd: toDateInput(league.seasonEnd),
+                            }}
+                          />
+                        </div>
                       </div>
                     );
                   })}
