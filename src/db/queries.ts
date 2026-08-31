@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { divisionDisplayName } from "@/lib/constants";
 import { db } from "./index";
 import {
   divisions,
@@ -121,18 +122,25 @@ async function loadDivisionSummaries(
     for (const r of rows) counts.set(r.divisionId, Number(r.n));
   }
 
-  return divRows.map((d) => ({
-    id: d.id,
-    name: d.name,
-    rating: d.rating,
-    ratingType: d.ratingType,
-    gender: d.gender,
-    ageGroup: d.ageGroup,
-    status: d.status,
-    seasonStart: d.seasonStart,
-    seasonEnd: d.seasonEnd,
-    teamCount: counts.get(d.id) ?? 0,
-  }));
+  return divRows
+    .map((d) => ({
+      id: d.id,
+      name: d.name,
+      rating: d.rating,
+      ratingType: d.ratingType,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      status: d.status,
+      seasonStart: d.seasonStart,
+      seasonEnd: d.seasonEnd,
+      teamCount: counts.get(d.id) ?? 0,
+    }))
+    .sort((a, b) =>
+      divisionDisplayName(a).localeCompare(divisionDisplayName(b), undefined, {
+        sensitivity: "base",
+        numeric: true,
+      }),
+    );
 }
 
 export type LeagueDetail = {
