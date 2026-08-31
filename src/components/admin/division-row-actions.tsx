@@ -19,25 +19,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
+import { EditDivisionDialog } from "@/components/admin/edit-division-dialog";
+import type { DivisionFormInitial } from "@/components/admin/division-form";
+import { deleteDivisionAction } from "@/app/admin/actions";
 
-type TeamRowActionsProps = {
-  divisionId: string;
-  team: {
-    id: string;
-    name: string;
-    area: string | null;
-    rosterCap: number | null;
-    hasCaptain: boolean;
-  };
-  deleteAction: () => Promise<void>;
-};
-
-export function TeamRowActions({
+export function DivisionRowActions({
+  leagueId,
   divisionId,
-  team,
-  deleteAction,
-}: TeamRowActionsProps) {
+  divisionLabel,
+  initial,
+}: {
+  leagueId: string;
+  divisionId: string;
+  divisionLabel: string;
+  initial: DivisionFormInitial;
+}) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,14 +44,14 @@ export function TeamRowActions({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" size="icon-sm" aria-label="Team actions">
+            <Button variant="ghost" size="icon-sm" aria-label="Division actions">
               <MoreVertical className="text-muted-foreground" />
             </Button>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-auto min-w-40">
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            Edit team
+            Edit division
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -66,12 +62,12 @@ export function TeamRowActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditTeamDialog
+      <EditDivisionDialog
         divisionId={divisionId}
-        team={team}
+        leagueId={leagueId}
+        initial={initial}
         open={editOpen}
         onOpenChange={setEditOpen}
-        trigger={false}
       />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -80,9 +76,9 @@ export function TeamRowActions({
           overlayClassName="bg-black/30 backdrop-blur-md"
         >
           <DialogHeader>
-            <DialogTitle>Delete “{team.name}”?</DialogTitle>
+            <DialogTitle>Delete “{divisionLabel}”?</DialogTitle>
             <DialogDescription>
-              Deleting removes the team and its roster.
+              Deleting removes the division and all its teams and matches.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -99,17 +95,20 @@ export function TeamRowActions({
               disabled={pending}
               onClick={() =>
                 startTransition(async () => {
-                  try {
-                    await deleteAction();
-                    setDeleteOpen(false);
-                    router.refresh();
-                  } catch {
-                    toast.error("Could not delete. Please try again.");
+                  const result = await deleteDivisionAction(
+                    divisionId,
+                    leagueId,
+                  );
+                  if (result?.error) {
+                    toast.error(result.error);
+                    return;
                   }
+                  setDeleteOpen(false);
+                  router.refresh();
                 })
               }
             >
-              {pending ? "Deleting…" : "Delete team"}
+              {pending ? "Deleting…" : "Delete division"}
             </Button>
           </DialogFooter>
         </DialogContent>

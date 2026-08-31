@@ -14,7 +14,7 @@ import { EditTeamForm } from "@/components/admin/edit-team-form";
 import { AssignCaptainForm } from "@/components/admin/assign-captain-form";
 
 type EditTeamDialogProps = {
-  leagueId: string;
+  divisionId: string;
   team: {
     id: string;
     name: string;
@@ -29,7 +29,7 @@ type EditTeamDialogProps = {
 };
 
 export function EditTeamDialog({
-  leagueId,
+  divisionId,
   team,
   open: openProp,
   onOpenChange,
@@ -62,14 +62,14 @@ export function EditTeamDialog({
           </DialogDescription>
         </DialogHeader>
         <EditTeamForm
-          leagueId={leagueId}
+          divisionId={divisionId}
           team={team}
           onSaved={() => setOpen(false)}
         >
           <div className="flex flex-col gap-1.5 border-t pt-4">
             <span className="text-sm font-medium">Captain</span>
             <AssignCaptainForm
-              leagueId={leagueId}
+              divisionId={divisionId}
               teamId={team.id}
               hasCaptain={team.hasCaptain}
             />

@@ -7,17 +7,17 @@ import { Input } from "@/components/ui/input";
 import { assignCaptainAction, type ActionState } from "@/app/admin/actions";
 
 type AssignCaptainFormProps = {
-  leagueId: string;
+  divisionId: string;
   teamId: string;
   hasCaptain: boolean;
 };
 
 export function AssignCaptainForm({
-  leagueId,
+  divisionId,
   teamId,
   hasCaptain,
 }: AssignCaptainFormProps) {
-  const action = assignCaptainAction.bind(null, leagueId, teamId);
+  const action = assignCaptainAction.bind(null, divisionId, teamId);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
     {},

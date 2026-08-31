@@ -10,13 +10,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
-import { CreateTeamDialog } from "@/components/admin/create-team-dialog";
+import { CreateDivisionDialog } from "@/components/admin/create-division-dialog";
 
 type LeagueRowActionsProps = {
   league: {
     id: string;
     name: string;
-    skillLevel: string;
     status: string;
     seasonStart: string;
     seasonEnd: string;
@@ -25,7 +24,7 @@ type LeagueRowActionsProps = {
 
 export function LeagueRowActions({ league }: LeagueRowActionsProps) {
   const [editOpen, setEditOpen] = useState(false);
-  const [addTeamOpen, setAddTeamOpen] = useState(false);
+  const [addDivisionOpen, setAddDivisionOpen] = useState(false);
 
   return (
     <>
@@ -37,12 +36,12 @@ export function LeagueRowActions({ league }: LeagueRowActionsProps) {
             </Button>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-auto min-w-40">
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setAddTeamOpen(true)}>
-            Add team
+          <DropdownMenuItem onClick={() => setAddDivisionOpen(true)}>
+            Add division
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -52,7 +51,6 @@ export function LeagueRowActions({ league }: LeagueRowActionsProps) {
         leagueName={league.name}
         initial={{
           name: league.name,
-          skillLevel: league.skillLevel,
           status: league.status,
           seasonStart: league.seasonStart,
           seasonEnd: league.seasonEnd,
@@ -62,10 +60,10 @@ export function LeagueRowActions({ league }: LeagueRowActionsProps) {
         trigger={false}
       />
 
-      <CreateTeamDialog
+      <CreateDivisionDialog
         leagueId={league.id}
-        open={addTeamOpen}
-        onOpenChange={setAddTeamOpen}
+        open={addDivisionOpen}
+        onOpenChange={setAddDivisionOpen}
         trigger={false}
       />
     </>

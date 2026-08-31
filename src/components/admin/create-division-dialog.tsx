@@ -10,15 +10,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CreateTeamForm } from "@/components/admin/create-team-form";
+import { DivisionForm } from "@/components/admin/division-form";
+import { createDivisionAction } from "@/app/admin/actions";
 
-export function CreateTeamDialog({
-  divisionId,
+export function CreateDivisionDialog({
+  leagueId,
   open: openProp,
   onOpenChange,
   trigger = true,
 }: {
-  divisionId: string;
+  leagueId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: boolean;
@@ -32,16 +33,23 @@ export function CreateTeamDialog({
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger render={<Button size="sm">Add team</Button>} />}
+      {trigger && (
+        <DialogTrigger render={<Button size="sm">Add division</Button>} />
+      )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New team</DialogTitle>
+          <DialogTitle>New division</DialogTitle>
           <DialogDescription>
-            Optionally set a captain by email — they&apos;ll be linked
-            automatically when they sign up.
+            A rating flight — teams register into it and play a round-robin.
           </DialogDescription>
         </DialogHeader>
-        <CreateTeamForm divisionId={divisionId} onCreated={() => setOpen(false)} />
+        <DivisionForm
+          action={createDivisionAction.bind(null, leagueId)}
+          submitLabel="Create division"
+          pendingLabel="Creating…"
+          successMessage="Division created."
+          onSaved={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

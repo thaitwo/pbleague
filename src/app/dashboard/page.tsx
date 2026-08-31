@@ -13,6 +13,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { getUserMatches, getUserTeams } from "@/db/queries";
 import { auth } from "@/lib/auth";
+import { divisionDisplayName } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 
 const ROLE_LABEL = {
@@ -132,7 +133,13 @@ export default async function DashboardPage() {
                             {t.teamName}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {t.leagueName} · Level {t.leagueLevel}
+                            {divisionDisplayName({
+                              name: t.divisionName,
+                              rating: t.divisionRating,
+                              gender: t.divisionGender,
+                              ageGroup: t.divisionAgeGroup,
+                            })}{" "}
+                            · {t.leagueName}
                           </div>
                         </div>
                         {t.status === "pending" ? (

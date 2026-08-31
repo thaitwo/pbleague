@@ -26,12 +26,13 @@ import {
 } from "@/app/teams/actions";
 import { autoConfirmStaleScores } from "@/db/mutations";
 import {
+  divisionHasSchedule,
   getTeamMatches,
   getTeamPage,
-  leagueHasSchedule,
-  listLeagueTeamsExcept,
+  listDivisionTeamsExcept,
 } from "@/db/queries";
 import { getSession } from "@/lib/auth-guard";
+import { divisionDisplayName } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 import { canManageLeadership, canManageTeam } from "@/lib/team-perms";
 
@@ -53,7 +54,7 @@ export default async function TeamPage({
   const data = await getTeamPage(teamId);
   if (!data) notFound();
 
-  const { team, league, members, pendingRequests } = data;
+  const { team, division, league, members, pendingRequests } = data;
   const session = await getSession();
   const isManager = await canManageTeam(session, teamId);
   const isLeadership = await canManageLeadership(session, teamId);
@@ -65,10 +66,10 @@ export default async function TeamPage({
 
   await autoConfirmStaleScores();
   const teamMatches = await getTeamMatches(teamId);
-  const hasSchedule = await leagueHasSchedule(league.id);
+  const hasSchedule = await divisionHasSchedule(division.id);
   // Ad-hoc proposals are only offered when the admin hasn't set a schedule.
   const opponents = isManager && !hasSchedule
-    ? await listLeagueTeamsExcept(league.id, teamId)
+    ? await listDivisionTeamsExcept(division.id, teamId)
     : [];
   const isAdmin = session?.user.role === "admin";
 
@@ -90,10 +91,8 @@ export default async function TeamPage({
         title={team.name}
         backHref={
           from === "admin" && isAdmin
-            ? `/admin/leagues/${league.id}`
-            : from === "league"
-              ? `/leagues/${league.id}`
-              : "/leagues"
+            ? `/admin/divisions/${division.id}`
+            : `/divisions/${division.id}`
         }
         description={`${members.length}${
           team.rosterCap ? `/${team.rosterCap}` : ""
@@ -101,14 +100,14 @@ export default async function TeamPage({
         titleExtra={
           <>
             <Badge variant="secondary">{league.name}</Badge>
-            <Badge variant="outline">Level {league.skillLevel}</Badge>
+            <Badge variant="outline">{divisionDisplayName(division)}</Badge>
           </>
         }
         action={
           <div className="flex items-center gap-2">
             {isAdmin && (
               <EditTeamDialog
-                leagueId={league.id}
+                divisionId={division.id}
                 team={{
                   id: team.id,
                   name: team.name,
@@ -141,7 +140,7 @@ export default async function TeamPage({
               </CardDescription>
               {isAdmin && (
                 <CardAction>
-                  <AddPlayerDialog leagueId={league.id} teamId={team.id} />
+                  <AddPlayerDialog divisionId={division.id} teamId={team.id} />
                 </CardAction>
               )}
             </CardHeader>

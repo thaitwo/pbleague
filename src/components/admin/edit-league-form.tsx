@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateLeagueAction, type ActionState } from "@/app/admin/actions";
-import { SKILL_LEVELS } from "@/lib/constants";
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -25,7 +24,6 @@ type EditLeagueFormProps = {
   leagueId: string;
   initial: {
     name: string;
-    skillLevel: string;
     status: string;
     seasonStart: string;
     seasonEnd: string;
@@ -62,21 +60,6 @@ export function EditLeagueForm({
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">League name</Label>
           <Input id="name" name="name" required defaultValue={initial.name} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Skill level</Label>
-          <Select name="skillLevel" defaultValue={initial.skillLevel}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a level" />
-            </SelectTrigger>
-            <SelectContent>
-              {SKILL_LEVELS.map((level) => (
-                <SelectItem key={level} value={level}>
-                  {level}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <div className="flex flex-col gap-2">
           <Label>Status</Label>

@@ -1,6 +1,6 @@
 // Demo data for local development / UI work. Repeatable: re-running replaces
-// its own data (leagues below + @demo.pbl users) and leaves everything else
-// (your admin account, other leagues) untouched.
+// its own data (the demo season below + @demo.pbl users) and leaves everything
+// else (your admin account, other leagues) untouched.
 //
 //   npm run seed
 //
@@ -12,11 +12,7 @@ try {
   // rely on the environment
 }
 
-const DEMO_LEAGUES = [
-  "Summer Social 3.5",
-  "Fall Open 4.0",
-  "Winter Ladder 3.0",
-];
+const DEMO_SEASONS = ["2026 Demo Season"];
 const ADMIN_EMAIL = "test@example.com";
 
 const daysFromNow = (d: number) =>
@@ -29,8 +25,8 @@ async function main() {
   const s = await import("../src/db/schema");
   const m = await import("../src/db/mutations");
 
-  // --- reset prior demo data ---
-  await db.delete(s.leagues).where(inArray(s.leagues.name, DEMO_LEAGUES));
+  // --- reset prior demo data (divisions/teams cascade from the season) ---
+  await db.delete(s.leagues).where(inArray(s.leagues.name, DEMO_SEASONS));
   await db.delete(s.user).where(like(s.user.email, "%@demo.pbl"));
 
   const [admin] = await db
@@ -60,14 +56,38 @@ async function main() {
 
   const enteredBy = scorerId ?? ids["alex@demo.pbl"];
 
+  type DivFacets = {
+    name?: string | null;
+    rating: string;
+    ratingType?: "single" | "combo";
+    gender?: "mens" | "womens" | "mixed";
+    ageGroup?: string;
+    status?: "draft" | "active" | "completed";
+    seasonStart?: Date | null;
+    seasonEnd?: Date | null;
+  };
+  async function division(leagueId: string, f: DivFacets) {
+    const d = await m.createDivision(leagueId, {
+      name: f.name ?? null,
+      rating: f.rating,
+      ratingType: f.ratingType ?? "single",
+      gender: f.gender ?? "mixed",
+      ageGroup: f.ageGroup ?? "18 & Over",
+      status: f.status ?? "active",
+      seasonStart: f.seasonStart ?? null,
+      seasonEnd: f.seasonEnd ?? null,
+    });
+    return d.id;
+  }
+
   async function team(
-    leagueId: string,
+    divisionId: string,
     name: string,
     captainEmail: string,
     opts: { coCaptain?: string; players?: string[]; rosterCap?: number } = {},
   ) {
     const t = await m.createTeam({
-      leagueId,
+      divisionId,
       name,
       rosterCap: opts.rosterCap ?? null,
       captainEmail,
@@ -111,28 +131,35 @@ async function main() {
     if (outcome === "disputed") await m.disputeScore(proposed.id);
   }
 
-  // ===== League A: Summer Social 3.5 =====
-  const a = await m.createLeague({
-    name: "Summer Social 3.5",
-    skillLevel: "3.5",
+  // ===== One demo season with several divisions =====
+  const season = await m.createLeague({
+    name: "2026 Demo Season",
     seasonStart: daysFromNow(-21),
-    seasonEnd: daysFromNow(40),
+    seasonEnd: daysFromNow(60),
     status: "active",
   });
-  const dinkers = await team(a.id, "Dinktown Dinkers", ADMIN_EMAIL, {
+
+  // --- Division A: 3.5 Mixed (the main worked example) ---
+  const a = await division(season.id, {
+    rating: "3.5",
+    gender: "mixed",
+    seasonStart: daysFromNow(-21),
+    seasonEnd: daysFromNow(40),
+  });
+  const dinkers = await team(a, "Dinktown Dinkers", ADMIN_EMAIL, {
     coCaptain: "alex@demo.pbl",
     players: ["sam@demo.pbl"],
     rosterCap: 8,
   });
-  const crashers = await team(a.id, "Kitchen Crashers", "jordan@demo.pbl", {
+  const crashers = await team(a, "Kitchen Crashers", "jordan@demo.pbl", {
     players: ["taylor@demo.pbl"],
     rosterCap: 8,
   });
-  const gains = await team(a.id, "Net Gains", "morgan@demo.pbl", {
+  const gains = await team(a, "Net Gains", "morgan@demo.pbl", {
     coCaptain: "casey@demo.pbl",
     rosterCap: 8,
   });
-  const paddle = await team(a.id, "Paddle Battalion", "riley@demo.pbl", {
+  const paddle = await team(a, "Paddle Battalion", "riley@demo.pbl", {
     players: ["jamie@demo.pbl"],
     rosterCap: 8,
   });
@@ -152,37 +179,36 @@ async function main() {
   await match(crashers, dinkers, daysFromNow(-2), "awaiting");
   await match(gains, crashers, daysFromNow(-3), "disputed");
 
-  // ===== League B: Fall Open 4.0 =====
-  const b = await m.createLeague({
-    name: "Fall Open 4.0",
-    skillLevel: "4.0",
+  // --- Division B: 4.0 Men's ---
+  const b = await division(season.id, {
+    rating: "4.0",
+    gender: "mens",
     seasonStart: daysFromNow(-10),
     seasonEnd: daysFromNow(60),
-    status: "active",
   });
-  const smash = await team(b.id, "Smash Bros", "alex@demo.pbl", {
+  const smash = await team(b, "Smash Bros", "alex@demo.pbl", {
     players: ["jordan@demo.pbl", "dana@demo.pbl"],
   });
-  const rally = await team(b.id, "Rally Cats", "casey@demo.pbl", {
+  const rally = await team(b, "Rally Cats", "casey@demo.pbl", {
     players: ["taylor@demo.pbl"],
   });
   // a team whose captain was invited by email but hasn't signed up yet
-  await team(b.id, "Baseline Bandits", "newcoach@demo.pbl");
+  await team(b, "Baseline Bandits", "newcoach@demo.pbl");
   await match(smash, rally, daysFromNow(-5), { confirmed: [[11, 9], [11, 6]] });
 
-  // ===== Draft league (admin-only; hidden from the public directory) =====
-  await m.createLeague({
-    name: "Winter Ladder 3.0",
-    skillLevel: "3.0",
-    seasonStart: null,
-    seasonEnd: null,
+  // --- Division C: 9.0 Mixed combo (draft, no teams) ---
+  await division(season.id, {
+    rating: "9.0",
+    ratingType: "combo",
+    gender: "mixed",
     status: "draft",
   });
 
   console.log("Seeded demo data:");
-  console.log("  • Summer Social 3.5 — 4 teams, 5 played + upcoming/proposed/awaiting/disputed");
-  console.log("  • Fall Open 4.0 — 3 teams (one pending captain invite), 1 played");
-  console.log("  • Winter Ladder 3.0 — draft");
+  console.log("  • 2026 Demo Season");
+  console.log("      – 3.5 Mixed — 4 teams, 5 played + upcoming/proposed/awaiting/disputed");
+  console.log("      – 4.0 Men's — 3 teams (one pending captain invite), 1 played");
+  console.log("      – 9.0 Mixed (combo) — draft, no teams");
   console.log(`  • ${ADMIN_EMAIL} is captain of Dinktown Dinkers`);
   process.exit(0);
 }

@@ -352,11 +352,11 @@ type GameInput = { homeScore: number; awayScore: number };
 function revalidateScored(match: {
   homeTeamId: string;
   awayTeamId: string;
-  leagueId: string;
+  divisionId: string;
 }) {
   revalidatePath(`/teams/${match.homeTeamId}`);
   revalidatePath(`/teams/${match.awayTeamId}`);
-  revalidatePath(`/leagues/${match.leagueId}`);
+  revalidatePath(`/divisions/${match.divisionId}`);
   revalidatePath("/leagues");
   revalidatePath("/dashboard");
 }

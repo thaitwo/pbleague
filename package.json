@@ -14,7 +14,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "seed": "tsx scripts/seed.ts",
-    "db:push:prod": "tsx scripts/db-push-prod.ts"
+    "db:push:prod": "tsx scripts/db-push-prod.ts",
+    "migrate:divisions": "tsx scripts/migrate-divisions.ts",
+    "migrate:divisions:prod": "tsx scripts/migrate-divisions-prod.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

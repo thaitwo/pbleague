@@ -3,29 +3,22 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CreateTeamDialog } from "@/components/admin/create-team-dialog";
-import { TeamRowActions } from "@/components/admin/team-row-actions";
+import { CreateDivisionDialog } from "@/components/admin/create-division-dialog";
+import { DivisionRowActions } from "@/components/admin/division-row-actions";
 import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
-import { ScheduleControls } from "@/components/admin/schedule-controls";
 import { PageHeader } from "@/components/page-header";
-import { deleteTeamAction } from "@/app/admin/actions";
-import { getLeagueDetail, getLeagueMatches, type MatchStatus } from "@/db/queries";
-import { formatDateTime } from "@/lib/format";
+import { getLeagueDetail } from "@/db/queries";
+import { divisionDisplayName } from "@/lib/constants";
 
-const FIXTURE_STATUS_LABEL: Record<MatchStatus, string> = {
-  unscheduled: "Not scheduled",
-  proposed: "Proposed",
-  scheduled: "Scheduled",
-  completed: "Awaiting confirmation",
-  confirmed: "Final",
-  disputed: "Disputed",
-  cancelled: "Cancelled",
-};
+const STATUS_VARIANT = {
+  draft: "secondary",
+  active: "default",
+  completed: "outline",
+} as const;
 
 function toDateInput(d: Date | null) {
   return d ? new Date(d).toISOString().slice(0, 10) : "";
@@ -58,8 +51,7 @@ export default async function LeagueDetailPage({
   const detail = await getLeagueDetail(leagueId);
   if (!detail) notFound();
 
-  const { league, teams } = detail;
-  const fixtures = await getLeagueMatches(league.id);
+  const { league, divisions } = detail;
 
   return (
     <>
@@ -74,125 +66,80 @@ export default async function LeagueDetailPage({
               leagueName={league.name}
               initial={{
                 name: league.name,
-                skillLevel: league.skillLevel,
                 status: league.status,
                 seasonStart: toDateInput(league.seasonStart),
                 seasonEnd: toDateInput(league.seasonEnd),
               }}
             />
-            <CreateTeamDialog leagueId={league.id} />
+            <CreateDivisionDialog leagueId={league.id} />
           </div>
         }
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Teams</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          {teams.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No teams yet.</p>
-          ) : (
-            <div className="flex flex-col divide-y">
-              <div className="-mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_1.75rem] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
-                <span>Team Name</span>
-                <span>Area</span>
-                <span>Captain</span>
-                <span className="sr-only">Actions</span>
-              </div>
-              {teams.map((team) => (
-                <div
-                  key={team.id}
-                  className="relative -mx-2 grid grid-cols-[1.5fr_1fr_1.5fr_1.75rem] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
-                >
-                  <Link
-                    href={`/teams/${team.id}?from=admin`}
-                    className="min-w-0 truncate font-medium after:absolute after:inset-0"
-                  >
-                    {team.name}
-                  </Link>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    {team.area ?? "No area"}
-                  </span>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    {team.captain
-                      ? `${team.captain.name ?? team.captain.email}${
-                          team.captain.claimed ? "" : " (pending)"
-                        }`
-                      : "No captain"}
-                  </span>
-                  <div className="relative z-10">
-                    <TeamRowActions
-                      leagueId={league.id}
-                      team={{
-                        id: team.id,
-                        name: team.name,
-                        area: team.area,
-                        rosterCap: team.rosterCap,
-                        hasCaptain: team.captain !== null,
-                      }}
-                      deleteAction={deleteTeamAction.bind(
-                        null,
-                        league.id,
-                        team.id,
-                      )}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Schedule</CardTitle>
-          <CardAction>
-            <ScheduleControls
-              leagueId={league.id}
-              hasFixtures={fixtures.length > 0}
-              canGenerate={teams.length >= 2}
-            />
-          </CardAction>
+          <CardTitle className="text-base">Divisions</CardTitle>
         </CardHeader>
         <CardContent>
-          {fixtures.length === 0 ? (
+          {divisions.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {teams.length < 2
-                ? "Add at least two teams, then generate a season schedule."
-                : "No schedule yet — generate one to create every matchup. Home captains then set the date & time for their home matches."}
+              No divisions yet — use “Add division” to create the first rating
+              flight.
             </p>
           ) : (
             <div className="flex flex-col divide-y">
-              <div className="-mx-2 grid grid-cols-[1.5fr_1.5fr_1fr_1.25fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
-                <span>Home</span>
-                <span>Away</span>
+              <div className="-mx-2 grid grid-cols-[2fr_1fr_1fr_0.75fr_1.75rem] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+                <span>Division</span>
+                <span>Age group</span>
                 <span>Status</span>
-                <span>Date &amp; time</span>
+                <span>Teams</span>
+                <span className="sr-only">Actions</span>
               </div>
-              {fixtures.map((m) => (
-                <div
-                  key={m.id}
-                  className="-mx-2 grid grid-cols-[1.5fr_1.5fr_1fr_1.25fr] items-center gap-4 px-2 py-3"
-                >
-                  <span className="min-w-0 truncate font-medium">
-                    {m.homeTeamName}
-                  </span>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    {m.awayTeamName}
-                  </span>
-                  <Badge
-                    variant={m.status === "unscheduled" ? "outline" : "secondary"}
-                    className="justify-self-start"
+              {divisions.map((d) => {
+                const label = divisionDisplayName(d);
+                return (
+                  <div
+                    key={d.id}
+                    className="relative -mx-2 grid grid-cols-[2fr_1fr_1fr_0.75fr_1.75rem] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
                   >
-                    {FIXTURE_STATUS_LABEL[m.status]}
-                  </Badge>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    {m.scheduledAt ? formatDateTime(m.scheduledAt) : "—"}
-                  </span>
-                </div>
-              ))}
+                    <Link
+                      href={`/admin/divisions/${d.id}`}
+                      className="min-w-0 truncate font-medium after:absolute after:inset-0"
+                    >
+                      {label}
+                    </Link>
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      {d.ageGroup}
+                    </span>
+                    <Badge
+                      variant={STATUS_VARIANT[d.status]}
+                      className="justify-self-start"
+                    >
+                      {d.status}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {d.teamCount}
+                    </span>
+                    <div className="relative z-10">
+                      <DivisionRowActions
+                        leagueId={league.id}
+                        divisionId={d.id}
+                        divisionLabel={label}
+                        initial={{
+                          name: d.name ?? "",
+                          rating: d.rating,
+                          ratingType: d.ratingType,
+                          gender: d.gender,
+                          ageGroup: d.ageGroup,
+                          status: d.status,
+                          seasonStart: toDateInput(d.seasonStart),
+                          seasonEnd: toDateInput(d.seasonEnd),
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

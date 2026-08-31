@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, count, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
+  divisions,
   leagues,
   matchGames,
   matches,
@@ -10,9 +11,10 @@ import {
   user,
 } from "./schema";
 
+// ---------- Leagues (seasons) ----------
+
 type LeagueInput = {
   name: string;
-  skillLevel: string;
   seasonStart: Date | null;
   seasonEnd: Date | null;
   status?: "draft" | "active" | "completed";
@@ -36,8 +38,47 @@ export async function deleteLeague(id: string) {
   await db.delete(leagues).where(eq(leagues.id, id));
 }
 
+// ---------- Divisions (rating flights) ----------
+
+type DivisionInput = {
+  name?: string | null;
+  rating: string;
+  ratingType: "single" | "combo";
+  gender: "mens" | "womens" | "mixed";
+  ageGroup: string;
+  seasonStart?: Date | null;
+  seasonEnd?: Date | null;
+  status?: "draft" | "active" | "completed";
+};
+
+export async function createDivision(
+  leagueId: string,
+  input: DivisionInput,
+) {
+  const [division] = await db
+    .insert(divisions)
+    .values({ ...input, name: input.name?.trim() || null, leagueId })
+    .returning();
+  return division;
+}
+
+export async function updateDivision(id: string, input: DivisionInput) {
+  const [division] = await db
+    .update(divisions)
+    .set({ ...input, name: input.name?.trim() || null, updatedAt: new Date() })
+    .where(eq(divisions.id, id))
+    .returning();
+  return division;
+}
+
+export async function deleteDivision(id: string) {
+  await db.delete(divisions).where(eq(divisions.id, id));
+}
+
+// ---------- Teams ----------
+
 type TeamInput = {
-  leagueId: string;
+  divisionId: string;
   name: string;
   area?: string | null;
   rosterCap: number | null;
@@ -391,14 +432,14 @@ export async function proposeMatch(input: {
     .where(eq(teams.id, input.opponentTeamId))
     .limit(1);
   if (!opponent) throw new Error("Opponent team not found.");
-  if (opponent.leagueId !== proposing.leagueId) {
-    throw new Error("You can only schedule matches within your own league.");
+  if (opponent.divisionId !== proposing.divisionId) {
+    throw new Error("You can only schedule matches within your own division.");
   }
 
   const [match] = await db
     .insert(matches)
     .values({
-      leagueId: proposing.leagueId,
+      divisionId: proposing.divisionId,
       homeTeamId: proposing.id,
       awayTeamId: opponent.id,
       proposedByTeamId: proposing.id,
@@ -634,7 +675,7 @@ export async function resolveScore(
     .where(eq(matches.id, matchId));
 }
 
-// ---------- Phase 6: admin-generated season schedule ----------
+// ---------- Admin-generated division schedule ----------
 
 /** Statuses that represent a played/scored match (never auto-wiped). */
 const RESULT_STATUSES = ["completed", "confirmed", "disputed"] as const;
@@ -649,13 +690,13 @@ const CLEARABLE_STATUSES = [
 export const MAX_MEETINGS = 4;
 
 /**
- * Creates a full round-robin of fixtures for a league: every pair of teams
+ * Creates a full round-robin of fixtures for a division: every pair of teams
  * meets `meetings` times, with home/away alternating for fairness. Fixtures
  * start `unscheduled` (no date) — the home captain sets the time later.
- * Refuses to run if the league already has any non-cancelled match.
+ * Refuses to run if the division already has any non-cancelled match.
  */
-export async function generateLeagueSchedule(
-  leagueId: string,
+export async function generateDivisionSchedule(
+  divisionId: string,
   meetings: number,
 ) {
   if (!Number.isInteger(meetings) || meetings < 1 || meetings > MAX_MEETINGS) {
@@ -665,7 +706,7 @@ export async function generateLeagueSchedule(
   const teamRows = await db
     .select({ id: teams.id })
     .from(teams)
-    .where(eq(teams.leagueId, leagueId))
+    .where(eq(teams.divisionId, divisionId))
     .orderBy(asc(teams.name));
   if (teamRows.length < 2) {
     throw new Error("Add at least two teams before generating a schedule.");
@@ -674,10 +715,12 @@ export async function generateLeagueSchedule(
   const [existing] = await db
     .select({ n: count() })
     .from(matches)
-    .where(and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")));
+    .where(
+      and(eq(matches.divisionId, divisionId), ne(matches.status, "cancelled")),
+    );
   if (Number(existing?.n ?? 0) > 0) {
     throw new Error(
-      "This league already has a schedule. Clear it before generating a new one.",
+      "This division already has a schedule. Clear it before generating a new one.",
     );
   }
 
@@ -688,10 +731,10 @@ export async function generateLeagueSchedule(
     for (let j = i + 1; j < ids.length; j++) {
       for (let m = 0; m < meetings; m++) {
         // Alternate home per meeting, and flip the starting host per pair so
-        // home games spread evenly across the league.
+        // home games spread evenly across the division.
         const firstIsHome = (m + pairIndex) % 2 === 0;
         rows.push({
-          leagueId,
+          divisionId,
           homeTeamId: firstIsHome ? ids[i] : ids[j],
           awayTeamId: firstIsHome ? ids[j] : ids[i],
           proposedByTeamId: null,
@@ -738,16 +781,16 @@ export async function setFixtureDateTime(
 }
 
 /**
- * Removes a league's generated fixtures. Refuses if any match already has a
+ * Removes a division's generated fixtures. Refuses if any match already has a
  * score (completed/confirmed/disputed) so results are never lost.
  */
-export async function clearLeagueSchedule(leagueId: string) {
+export async function clearDivisionSchedule(divisionId: string) {
   const [withResults] = await db
     .select({ n: count() })
     .from(matches)
     .where(
       and(
-        eq(matches.leagueId, leagueId),
+        eq(matches.divisionId, divisionId),
         inArray(matches.status, RESULT_STATUSES),
       ),
     );
@@ -760,7 +803,7 @@ export async function clearLeagueSchedule(leagueId: string) {
     .delete(matches)
     .where(
       and(
-        eq(matches.leagueId, leagueId),
+        eq(matches.divisionId, divisionId),
         inArray(matches.status, CLEARABLE_STATUSES),
       ),
     )

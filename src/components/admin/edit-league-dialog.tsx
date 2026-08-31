@@ -18,7 +18,6 @@ type EditLeagueDialogProps = {
   leagueName: string;
   initial: {
     name: string;
-    skillLevel: string;
     status: string;
     seasonStart: string;
     seasonEnd: string;

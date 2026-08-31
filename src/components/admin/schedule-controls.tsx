@@ -30,11 +30,11 @@ import {
 const MEETINGS = ["1", "2", "3", "4"] as const;
 
 export function ScheduleControls({
-  leagueId,
+  divisionId,
   hasFixtures,
   canGenerate,
 }: {
-  leagueId: string;
+  divisionId: string;
   hasFixtures: boolean;
   canGenerate: boolean;
 }) {
@@ -46,7 +46,7 @@ export function ScheduleControls({
 
   function generate() {
     startTransition(async () => {
-      const result = await generateScheduleAction(leagueId, Number(meetings));
+      const result = await generateScheduleAction(divisionId, Number(meetings));
       if (result.error) {
         toast.error(result.error);
         return;
@@ -59,7 +59,7 @@ export function ScheduleControls({
 
   function clear() {
     startTransition(async () => {
-      const result = await clearScheduleAction(leagueId);
+      const result = await clearScheduleAction(divisionId);
       if (result.error) {
         toast.error(result.error);
         return;

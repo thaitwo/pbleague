@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createLeagueAction, type ActionState } from "@/app/admin/actions";
-import { SKILL_LEVELS } from "@/lib/constants";
 
 export function CreateLeagueForm() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -34,21 +26,6 @@ export function CreateLeagueForm() {
             League name <span className="text-destructive">*</span>
           </Label>
           <Input id="name" name="name" required />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label>Skill level</Label>
-          <Select name="skillLevel">
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {SKILL_LEVELS.map((level) => (
-                <SelectItem key={level} value={level}>
-                  {level}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="seasonStart">Start date</Label>

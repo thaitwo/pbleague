@@ -96,11 +96,45 @@ export const matchStatus = pgEnum("match_status", [
   "cancelled",
 ]);
 
+// A division's rating is either a single skill level (e.g. "3.5") or a combo
+// rating summing two players (e.g. "8.5" = 4.0 + 4.5).
+export const divisionRatingType = pgEnum("division_rating_type", [
+  "single",
+  "combo",
+]);
+
+export const divisionGender = pgEnum("division_gender", [
+  "mens",
+  "womens",
+  "mixed",
+]);
+
+// Top-level "league" = a season/program bucket (e.g. "Fall 2026 Adult").
+// Its rating flights live in `divisions`.
 export const leagues = pgTable("leagues", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  // e.g. "3.0", "3.5", "4.0"
-  skillLevel: text("skill_level").notNull(),
+  seasonStart: timestamp("season_start"),
+  seasonEnd: timestamp("season_end"),
+  status: leagueStatus("status").notNull().default("draft"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// A division is a rating "flight" within a league, defined by its facets
+// (rating × gender × age group). Teams, matches, and standings live here.
+export const divisions = pgTable("divisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leagueId: uuid("league_id")
+    .notNull()
+    .references(() => leagues.id, { onDelete: "cascade" }),
+  // Optional override; otherwise the display name derives from the facets.
+  name: text("name"),
+  // e.g. "3.5" (single) or "8.5" (combo = sum of two players' ratings)
+  rating: text("rating").notNull(),
+  ratingType: divisionRatingType("rating_type").notNull().default("single"),
+  gender: divisionGender("gender").notNull().default("mixed"),
+  ageGroup: text("age_group").notNull().default("18 & Over"),
   seasonStart: timestamp("season_start"),
   seasonEnd: timestamp("season_end"),
   status: leagueStatus("status").notNull().default("draft"),
@@ -110,9 +144,9 @@ export const leagues = pgTable("leagues", {
 
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
-  leagueId: uuid("league_id")
+  divisionId: uuid("division_id")
     .notNull()
-    .references(() => leagues.id, { onDelete: "cascade" }),
+    .references(() => divisions.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   area: text("area"),
   rosterCap: integer("roster_cap"),
@@ -137,9 +171,9 @@ export const teamMemberships = pgTable("team_memberships", {
 
 export const matches = pgTable("matches", {
   id: uuid("id").primaryKey().defaultRandom(),
-  leagueId: uuid("league_id")
+  divisionId: uuid("division_id")
     .notNull()
-    .references(() => leagues.id, { onDelete: "cascade" }),
+    .references(() => divisions.id, { onDelete: "cascade" }),
   homeTeamId: uuid("home_team_id")
     .notNull()
     .references(() => teams.id, { onDelete: "cascade" }),

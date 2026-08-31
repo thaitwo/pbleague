@@ -11,6 +11,7 @@ import {
 import { AcceptInviteButton } from "@/components/teams/accept-invite-button";
 import { getTeamByInviteToken } from "@/db/queries";
 import { getSession } from "@/lib/auth-guard";
+import { divisionDisplayName } from "@/lib/constants";
 
 export default async function JoinPage({
   params,
@@ -42,7 +43,7 @@ export default async function JoinPage({
     );
   }
 
-  const { team, league } = result;
+  const { team, division } = result;
 
   if (!session) {
     // Send them to sign in, then back to this invite page.
@@ -55,7 +56,7 @@ export default async function JoinPage({
         <CardHeader>
           <CardTitle>Join {team.name}</CardTitle>
           <CardDescription>
-            {league.name} · Level {league.skillLevel}
+            {divisionDisplayName(division)}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

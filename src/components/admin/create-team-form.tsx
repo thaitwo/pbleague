@@ -17,12 +17,12 @@ import { createTeamAction, type ActionState } from "@/app/admin/actions";
 import { AREAS } from "@/lib/constants";
 
 type CreateTeamFormProps = {
-  leagueId: string;
+  divisionId: string;
   onCreated?: () => void;
 };
 
-export function CreateTeamForm({ leagueId, onCreated }: CreateTeamFormProps) {
-  const action = createTeamAction.bind(null, leagueId);
+export function CreateTeamForm({ divisionId, onCreated }: CreateTeamFormProps) {
+  const action = createTeamAction.bind(null, divisionId);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
     {},

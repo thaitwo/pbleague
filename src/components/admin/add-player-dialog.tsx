@@ -18,11 +18,11 @@ import { Label } from "@/components/ui/label";
 import { addPlayerAction, type ActionState } from "@/app/admin/actions";
 
 type AddPlayerDialogProps = {
-  leagueId: string;
+  divisionId: string;
   teamId: string;
 };
 
-export function AddPlayerDialog({ leagueId, teamId }: AddPlayerDialogProps) {
+export function AddPlayerDialog({ divisionId, teamId }: AddPlayerDialogProps) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -41,7 +41,7 @@ export function AddPlayerDialog({ leagueId, teamId }: AddPlayerDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <AddPlayerForm
-          leagueId={leagueId}
+          divisionId={divisionId}
           teamId={teamId}
           onAdded={() => setOpen(false)}
         />
@@ -51,11 +51,11 @@ export function AddPlayerDialog({ leagueId, teamId }: AddPlayerDialogProps) {
 }
 
 function AddPlayerForm({
-  leagueId,
+  divisionId,
   teamId,
   onAdded,
 }: AddPlayerDialogProps & { onAdded: () => void }) {
-  const action = addPlayerAction.bind(null, leagueId, teamId);
+  const action = addPlayerAction.bind(null, divisionId, teamId);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
     {},

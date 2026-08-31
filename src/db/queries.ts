@@ -13,6 +13,7 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./index";
 import {
+  divisions,
   leagues,
   matchGames,
   matches,
@@ -76,24 +77,70 @@ async function loadMembersByTeam(teamIds: string[]) {
   return byTeam;
 }
 
+// ---------- Leagues (seasons) ----------
+
+/** All leagues (season/program buckets), newest first. */
 export async function listLeagues() {
   return db.select().from(leagues).orderBy(desc(leagues.createdAt));
 }
 
-export type TeamWithMembers = {
+export type DivisionSummary = {
   id: string;
-  name: string;
-  area: string | null;
-  rosterCap: number | null;
-  members: TeamMember[]; // active members only
-  captain: TeamMember | null;
+  name: string | null;
+  rating: string;
+  ratingType: "single" | "combo";
+  gender: "mens" | "womens" | "mixed";
+  ageGroup: string;
+  status: "draft" | "active" | "completed";
+  seasonStart: Date | null;
+  seasonEnd: Date | null;
+  teamCount: number;
 };
+
+async function loadDivisionSummaries(
+  where: SQL | undefined,
+): Promise<DivisionSummary[]> {
+  const divRows = await db
+    .select()
+    .from(divisions)
+    .where(where)
+    .orderBy(asc(divisions.rating), asc(divisions.gender));
+
+  const counts = new Map<string, number>();
+  if (divRows.length > 0) {
+    const rows = await db
+      .select({ divisionId: teams.divisionId, n: count() })
+      .from(teams)
+      .where(
+        inArray(
+          teams.divisionId,
+          divRows.map((d) => d.id),
+        ),
+      )
+      .groupBy(teams.divisionId);
+    for (const r of rows) counts.set(r.divisionId, Number(r.n));
+  }
+
+  return divRows.map((d) => ({
+    id: d.id,
+    name: d.name,
+    rating: d.rating,
+    ratingType: d.ratingType,
+    gender: d.gender,
+    ageGroup: d.ageGroup,
+    status: d.status,
+    seasonStart: d.seasonStart,
+    seasonEnd: d.seasonEnd,
+    teamCount: counts.get(d.id) ?? 0,
+  }));
+}
 
 export type LeagueDetail = {
   league: typeof leagues.$inferSelect;
-  teams: TeamWithMembers[];
+  divisions: DivisionSummary[];
 };
 
+/** A league (season) with its divisions — for the admin league page. */
 export async function getLeagueDetail(
   leagueId: string,
 ): Promise<LeagueDetail | null> {
@@ -104,10 +151,76 @@ export async function getLeagueDetail(
     .limit(1);
   if (!league) return null;
 
+  const divisionList = await loadDivisionSummaries(
+    eq(divisions.leagueId, leagueId),
+  );
+  return { league, divisions: divisionList };
+}
+
+/** Public directory: non-draft leagues (seasons), most recent season first. */
+export async function listPublicLeagues() {
+  return db
+    .select()
+    .from(leagues)
+    .where(ne(leagues.status, "draft"))
+    .orderBy(
+      sql`${leagues.seasonStart} desc nulls last`,
+      desc(leagues.createdAt),
+    );
+}
+
+/** A league (season) with its non-draft divisions — the public divisions directory. */
+export async function getLeaguePublic(leagueId: string) {
+  const [league] = await db
+    .select()
+    .from(leagues)
+    .where(eq(leagues.id, leagueId))
+    .limit(1);
+  if (!league) return null;
+  const divisionList = await loadDivisionSummaries(
+    and(eq(divisions.leagueId, leagueId), ne(divisions.status, "draft")),
+  );
+  return { league, divisions: divisionList };
+}
+
+// ---------- Divisions (rating flights) ----------
+
+export type TeamWithMembers = {
+  id: string;
+  name: string;
+  area: string | null;
+  rosterCap: number | null;
+  members: TeamMember[]; // active members only
+  captain: TeamMember | null;
+};
+
+export type DivisionDetail = {
+  division: typeof divisions.$inferSelect;
+  league: typeof leagues.$inferSelect;
+  teams: TeamWithMembers[];
+};
+
+/** A division with its teams + parent league — for the admin division page. */
+export async function getDivisionDetail(
+  divisionId: string,
+): Promise<DivisionDetail | null> {
+  const [division] = await db
+    .select()
+    .from(divisions)
+    .where(eq(divisions.id, divisionId))
+    .limit(1);
+  if (!division) return null;
+
+  const [league] = await db
+    .select()
+    .from(leagues)
+    .where(eq(leagues.id, division.leagueId))
+    .limit(1);
+
   const teamRows = await db
     .select()
     .from(teams)
-    .where(eq(teams.leagueId, leagueId))
+    .where(eq(teams.divisionId, divisionId))
     .orderBy(asc(teams.name));
 
   const byTeam = await loadMembersByTeam(teamRows.map((t) => t.id));
@@ -124,23 +237,14 @@ export async function getLeagueDetail(
     };
   });
 
-  return { league, teams: teamsWithMembers };
+  return { division, league, teams: teamsWithMembers };
 }
 
-/** Public directory: non-draft leagues, most recent season first. */
-export async function listPublicLeagues() {
-  return db
-    .select()
-    .from(leagues)
-    .where(ne(leagues.status, "draft"))
-    .orderBy(
-      sql`${leagues.seasonStart} desc nulls last`,
-      desc(leagues.createdAt),
-    );
-}
+// ---------- Teams ----------
 
 export type TeamPage = {
   team: typeof teams.$inferSelect;
+  division: typeof divisions.$inferSelect;
   league: typeof leagues.$inferSelect;
   members: TeamMember[]; // active
   pendingRequests: TeamMember[]; // status = pending, has userId
@@ -154,15 +258,21 @@ export async function getTeamPage(teamId: string): Promise<TeamPage | null> {
     .limit(1);
   if (!team) return null;
 
+  const [division] = await db
+    .select()
+    .from(divisions)
+    .where(eq(divisions.id, team.divisionId))
+    .limit(1);
   const [league] = await db
     .select()
     .from(leagues)
-    .where(eq(leagues.id, team.leagueId))
+    .where(eq(leagues.id, division.leagueId))
     .limit(1);
 
   const all = (await loadMembersByTeam([teamId])).get(teamId) ?? [];
   return {
     team,
+    division,
     league,
     members: all.filter((m) => m.status === "active"),
     pendingRequests: all.filter((m) => m.status === "pending" && m.userId),
@@ -172,8 +282,12 @@ export async function getTeamPage(teamId: string): Promise<TeamPage | null> {
 export type UserTeam = {
   teamId: string;
   teamName: string;
+  divisionId: string;
+  divisionName: string | null;
+  divisionRating: string;
+  divisionGender: "mens" | "womens" | "mixed";
+  divisionAgeGroup: string;
   leagueName: string;
-  leagueLevel: string;
   role: "captain" | "co_captain" | "player";
   status: "pending" | "active" | "removed";
 };
@@ -183,14 +297,19 @@ export async function getUserTeams(userId: string): Promise<UserTeam[]> {
     .select({
       teamId: teams.id,
       teamName: teams.name,
+      divisionId: divisions.id,
+      divisionName: divisions.name,
+      divisionRating: divisions.rating,
+      divisionGender: divisions.gender,
+      divisionAgeGroup: divisions.ageGroup,
       leagueName: leagues.name,
-      leagueLevel: leagues.skillLevel,
       role: teamMemberships.role,
       status: teamMemberships.status,
     })
     .from(teamMemberships)
     .innerJoin(teams, eq(teamMemberships.teamId, teams.id))
-    .innerJoin(leagues, eq(teams.leagueId, leagues.id))
+    .innerJoin(divisions, eq(teams.divisionId, divisions.id))
+    .innerJoin(leagues, eq(divisions.leagueId, leagues.id))
     .where(
       and(
         eq(teamMemberships.userId, userId),
@@ -207,15 +326,15 @@ export async function getTeamByInviteToken(token: string) {
     .where(eq(teams.inviteToken, token))
     .limit(1);
   if (!team) return null;
-  const [league] = await db
+  const [division] = await db
     .select()
-    .from(leagues)
-    .where(eq(leagues.id, team.leagueId))
+    .from(divisions)
+    .where(eq(divisions.id, team.divisionId))
     .limit(1);
-  return { team, league };
+  return { team, division };
 }
 
-// ---------- Phase 4: scheduling ----------
+// ---------- Scheduling ----------
 
 export type MatchStatus =
   | "unscheduled"
@@ -234,7 +353,7 @@ export type MatchGame = {
 
 export type MatchView = {
   id: string;
-  leagueId: string;
+  divisionId: string;
   status: MatchStatus;
   scheduledAt: Date | null;
   location: string | null;
@@ -275,7 +394,7 @@ async function selectMatches(where: SQL | undefined): Promise<MatchView[]> {
   const rows = await db
     .select({
       id: matches.id,
-      leagueId: matches.leagueId,
+      divisionId: matches.divisionId,
       status: matches.status,
       scheduledAt: matches.scheduledAt,
       location: matches.location,
@@ -297,15 +416,15 @@ async function selectMatches(where: SQL | undefined): Promise<MatchView[]> {
   return rows.map((r) => ({ ...r, games: games.get(r.id) ?? [] }));
 }
 
-/** Other teams in the same league — candidate opponents. */
-export async function listLeagueTeamsExcept(
-  leagueId: string,
+/** Other teams in the same division — candidate opponents. */
+export async function listDivisionTeamsExcept(
+  divisionId: string,
   excludeTeamId: string,
 ) {
   return db
     .select({ id: teams.id, name: teams.name })
     .from(teams)
-    .where(and(eq(teams.leagueId, leagueId), ne(teams.id, excludeTeamId)))
+    .where(and(eq(teams.divisionId, divisionId), ne(teams.id, excludeTeamId)))
     .orderBy(asc(teams.name));
 }
 
@@ -354,29 +473,38 @@ export async function getMatch(matchId: string) {
   return match ?? null;
 }
 
-/** Disputed matches across all leagues — for the admin console. */
+/** Disputed matches across all divisions — for the admin console. */
 export async function getDisputedMatches(): Promise<MatchView[]> {
   return selectMatches(eq(matches.status, "disputed"));
 }
 
-/** All non-cancelled fixtures in a league — for the admin schedule view. */
-export async function getLeagueMatches(leagueId: string): Promise<MatchView[]> {
+/** All non-cancelled fixtures in a division — for the admin schedule view. */
+export async function getDivisionMatches(
+  divisionId: string,
+): Promise<MatchView[]> {
   return selectMatches(
-    and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")),
+    and(eq(matches.divisionId, divisionId), ne(matches.status, "cancelled")),
   );
 }
 
-/** True once a league has any non-cancelled fixture (i.e. a schedule exists). */
-export async function leagueHasSchedule(leagueId: string): Promise<boolean> {
+/** True once a division has any non-cancelled fixture (i.e. a schedule exists). */
+export async function divisionHasSchedule(
+  divisionId: string,
+): Promise<boolean> {
   const [row] = await db
     .select({ n: count() })
     .from(matches)
-    .where(and(eq(matches.leagueId, leagueId), ne(matches.status, "cancelled")))
+    .where(
+      and(
+        eq(matches.divisionId, divisionId),
+        ne(matches.status, "cancelled"),
+      ),
+    )
     .limit(1);
   return Number(row?.n ?? 0) > 0;
 }
 
-// ---------- Phase 5: standings ----------
+// ---------- Standings ----------
 
 export type StandingRow = {
   teamId: string;
@@ -401,18 +529,18 @@ function streakLabel(results: boolean[]): string {
   return `${last ? "W" : "L"}${n}`;
 }
 
-export async function getLeagueStandings(
-  leagueId: string,
+export async function getDivisionStandings(
+  divisionId: string,
 ): Promise<StandingRow[]> {
   const teamRows = await db
     .select({ id: teams.id, name: teams.name })
     .from(teams)
-    .where(eq(teams.leagueId, leagueId))
+    .where(eq(teams.divisionId, divisionId))
     .orderBy(asc(teams.name));
 
   // Confirmed matches, chronological (selectMatches orders by scheduledAt asc).
   const confirmed = await selectMatches(
-    and(eq(matches.leagueId, leagueId), eq(matches.status, "confirmed")),
+    and(eq(matches.divisionId, divisionId), eq(matches.status, "confirmed")),
   );
 
   const acc = new Map<string, StandingRow>();
@@ -508,18 +636,27 @@ export async function getLeagueStandings(
   return rows;
 }
 
-export async function getLeaguePublic(leagueId: string) {
+/** A division's standings + recent/upcoming matches + parent league — public page. */
+export async function getDivisionPublic(divisionId: string) {
+  const [division] = await db
+    .select()
+    .from(divisions)
+    .where(eq(divisions.id, divisionId))
+    .limit(1);
+  if (!division) return null;
   const [league] = await db
     .select()
     .from(leagues)
-    .where(eq(leagues.id, leagueId))
+    .where(eq(leagues.id, division.leagueId))
     .limit(1);
-  if (!league) return null;
 
-  const standings = await getLeagueStandings(leagueId);
+  const standings = await getDivisionStandings(divisionId);
   const recent = (
     await selectMatches(
-      and(eq(matches.leagueId, leagueId), eq(matches.status, "confirmed")),
+      and(
+        eq(matches.divisionId, divisionId),
+        eq(matches.status, "confirmed"),
+      ),
     )
   )
     .sort(
@@ -527,8 +664,8 @@ export async function getLeaguePublic(leagueId: string) {
     )
     .slice(0, 8);
   const upcoming = await selectMatches(
-    and(eq(matches.leagueId, leagueId), eq(matches.status, "scheduled")),
+    and(eq(matches.divisionId, divisionId), eq(matches.status, "scheduled")),
   );
 
-  return { league, standings, recent, upcoming };
+  return { division, league, standings, recent, upcoming };
 }

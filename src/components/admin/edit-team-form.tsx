@@ -17,7 +17,7 @@ import { updateTeamAction, type ActionState } from "@/app/admin/actions";
 import { AREAS } from "@/lib/constants";
 
 type EditTeamFormProps = {
-  leagueId: string;
+  divisionId: string;
   team: {
     id: string;
     name: string;
@@ -29,13 +29,13 @@ type EditTeamFormProps = {
 };
 
 export function EditTeamForm({
-  leagueId,
+  divisionId,
   team,
   onSaved,
   children,
 }: EditTeamFormProps) {
   const formId = useId();
-  const action = updateTeamAction.bind(null, leagueId, team.id);
+  const action = updateTeamAction.bind(null, divisionId, team.id);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
     {},

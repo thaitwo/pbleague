@@ -30,9 +30,8 @@ export default async function LeaguesPage() {
             </p>
           ) : (
             <div className="flex flex-col divide-y">
-              <div className="-mx-2 grid grid-cols-[2fr_1fr_1.5fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
+              <div className="-mx-2 grid grid-cols-[2fr_1.5fr] items-center gap-4 px-2 pb-2 text-xs font-medium text-muted-foreground">
                 <span>League Name</span>
-                <span>Level</span>
                 <span>Season</span>
               </div>
               {leagues.map((league) => {
@@ -44,7 +43,7 @@ export default async function LeaguesPage() {
                 return (
                   <div
                     key={league.id}
-                    className="relative -mx-2 grid grid-cols-[2fr_1fr_1.5fr] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
+                    className="relative -mx-2 grid grid-cols-[2fr_1.5fr] items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/50"
                   >
                     <Link
                       href={`/leagues/${league.id}`}
@@ -52,9 +51,6 @@ export default async function LeaguesPage() {
                     >
                       {league.name}
                     </Link>
-                    <span className="min-w-0 truncate text-sm text-muted-foreground">
-                      {league.skillLevel}
-                    </span>
                     <span className="min-w-0 truncate text-sm text-muted-foreground">
                       {season}
                     </span>
