@@ -42,7 +42,7 @@ export default async function AdminPage() {
     <>
       <PageHeader
         title="Admin console"
-        description="Create leagues by skill level and build out their teams."
+        description="Create leagues, add divisions by rating, and build out their teams."
         action={<CreateLeagueDialog />}
       />
 

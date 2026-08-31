@@ -19,7 +19,7 @@ export default async function LeaguesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Leagues"
-        description="Browse leagues and view standings."
+        description="Browse leagues and their divisions."
       />
 
       <Card>
