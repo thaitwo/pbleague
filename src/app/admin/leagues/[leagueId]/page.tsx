@@ -13,6 +13,7 @@ import { EditLeagueDialog } from "@/components/admin/edit-league-dialog";
 import { PageHeader } from "@/components/page-header";
 import { getLeagueDetail } from "@/db/queries";
 import { divisionDisplayName } from "@/lib/constants";
+import { seasonLabel } from "@/lib/format";
 
 const STATUS_VARIANT = {
   draft: "secondary",
@@ -22,24 +23,6 @@ const STATUS_VARIANT = {
 
 function toDateInput(d: Date | null) {
   return d ? new Date(d).toISOString().slice(0, 10) : "";
-}
-
-function fmtDate(d: Date | null) {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function seasonLabel(start: Date | null, end: Date | null) {
-  const s = fmtDate(start);
-  const e = fmtDate(end);
-  if (s && e) return `${s} – ${e}`;
-  if (s) return `Starts ${s}`;
-  if (e) return `Ends ${e}`;
-  return undefined;
 }
 
 export default async function LeagueDetailPage({

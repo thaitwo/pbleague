@@ -3,24 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DivisionDirectory } from "@/components/division-directory";
 import { PageHeader } from "@/components/page-header";
 import { getLeaguePublic } from "@/db/queries";
-
-function fmtDate(d: Date | null) {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function seasonLabel(start: Date | null, end: Date | null) {
-  const s = fmtDate(start);
-  const e = fmtDate(end);
-  if (s && e) return `${s} – ${e}`;
-  if (s) return `Starts ${s}`;
-  if (e) return `Ends ${e}`;
-  return undefined;
-}
+import { seasonLabel } from "@/lib/format";
 
 export default async function LeagueDivisionsPage({
   params,

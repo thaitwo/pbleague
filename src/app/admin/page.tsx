@@ -12,21 +12,13 @@ import { CreateLeagueDialog } from "@/components/admin/create-league-dialog";
 import { LeagueRowActions } from "@/components/admin/league-row-actions";
 import { PageHeader } from "@/components/page-header";
 import { getDisputedMatches, listLeagues } from "@/db/queries";
+import { formatDate } from "@/lib/format";
 
 const STATUS_VARIANT = {
   draft: "secondary",
   active: "default",
   completed: "outline",
 } as const;
-
-function formatDate(d: Date | null) {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function toDateInput(d: Date | null) {
   return d ? new Date(d).toISOString().slice(0, 10) : "";

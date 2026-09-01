@@ -2,15 +2,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { listPublicLeagues } from "@/db/queries";
-
-function formatDate(d: Date | null) {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "2-digit",
-  });
-}
+import { formatDate } from "@/lib/format";
 
 export default async function LeaguesPage() {
   const leagues = await listPublicLeagues();
