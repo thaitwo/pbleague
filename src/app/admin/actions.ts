@@ -4,13 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as mutations from "@/db/mutations";
 import { requireAdmin } from "@/lib/auth-guard";
-import {
-  AGE_GROUPS,
-  AREAS,
-  GENDERS,
-  RATING_TYPES,
-  SKILL_LEVELS,
-} from "@/lib/constants";
+import { AGE_GROUPS, AREAS, GENDERS, RATING_TYPES } from "@/lib/constants";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -99,14 +93,8 @@ function parseDivisionForm(formData: FormData) {
   }
   const rating = String(formData.get("rating") ?? "").trim();
   if (!rating) return { error: "Rating is required." as const };
-  if (
-    ratingType === "single" &&
-    !SKILL_LEVELS.includes(rating as (typeof SKILL_LEVELS)[number])
-  ) {
-    return { error: "Please pick a valid skill level." as const };
-  }
-  if (ratingType === "combo" && !/^\d+(\.\d+)?$/.test(rating)) {
-    return { error: "Combo rating must be a number (e.g. 8.5)." as const };
+  if (!/^\d+(\.\d+)?$/.test(rating)) {
+    return { error: "Rating must be a number (e.g. 3.5 or 8.5)." as const };
   }
 
   const gender = String(formData.get("gender") ?? "").trim();

@@ -80,9 +80,18 @@ async function loadMembersByTeam(teamIds: string[]) {
 
 // ---------- Leagues (seasons) ----------
 
-/** All leagues (season/program buckets), newest first. */
+/**
+ * All leagues (season/program buckets), ordered active → draft → completed,
+ * then newest first within each status.
+ */
 export async function listLeagues() {
-  return db.select().from(leagues).orderBy(desc(leagues.createdAt));
+  return db
+    .select()
+    .from(leagues)
+    .orderBy(
+      sql`case ${leagues.status} when 'active' then 0 when 'draft' then 1 else 2 end`,
+      desc(leagues.createdAt),
+    );
 }
 
 export type DivisionSummary = {

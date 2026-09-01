@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ActionState } from "@/app/admin/actions";
-import { AGE_GROUPS, GENDER_LABEL, GENDERS, SKILL_LEVELS } from "@/lib/constants";
+import { AGE_GROUPS, GENDER_LABEL, GENDERS } from "@/lib/constants";
 
 const RATING_TYPE_OPTIONS = [
   { value: "single", label: "Single skill level" },
@@ -102,15 +102,9 @@ export function DivisionForm({
             id="division-rating"
             name="rating"
             required
-            list="skill-levels"
             defaultValue={initial.rating}
             placeholder="3.5 or 8.5"
           />
-          <datalist id="skill-levels">
-            {SKILL_LEVELS.map((l) => (
-              <option key={l} value={l} />
-            ))}
-          </datalist>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
