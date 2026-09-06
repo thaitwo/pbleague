@@ -27,9 +27,11 @@ import {
 import { autoConfirmStaleScores } from "@/db/mutations";
 import {
   divisionHasSchedule,
+  getActiveRostersByTeam,
   getTeamMatches,
   getTeamPage,
   listDivisionTeamsExcept,
+  matchOutcome,
 } from "@/db/queries";
 import { getSession } from "@/lib/auth-guard";
 import { divisionDisplayName } from "@/lib/constants";
@@ -71,6 +73,12 @@ export default async function TeamPage({
     ? await listDivisionTeamsExcept(division.id, teamId)
     : [];
   const isAdmin = session?.user.role === "admin";
+
+  // Rosters for the lineup player pickers — every team involved in a match.
+  const rosterTeamIds = [
+    ...new Set(teamMatches.flatMap((m) => [m.homeTeamId, m.awayTeamId])),
+  ];
+  const rosters = await getActiveRostersByTeam(rosterTeamIds);
 
   const viewerId = session?.user.id;
   const viewerActive = members.some((m) => m.userId === viewerId);
@@ -146,22 +154,28 @@ export default async function TeamPage({
               myTeamId={teamId}
               canManage={isManager}
               isAdmin={isAdmin}
+              lineupTemplate={division.lineups}
+              rosters={rosters}
               matches={teamMatches.map((m) => {
                 const isHome = m.homeTeamId === teamId;
+                const o = matchOutcome(m);
                 return {
                   matchId: m.id,
+                  status: m.status,
+                  isHome,
+                  homeTeamId: m.homeTeamId,
+                  awayTeamId: m.awayTeamId,
+                  homeTeamName: m.homeTeamName,
+                  awayTeamName: m.awayTeamName,
                   opponentName: isHome ? m.awayTeamName : m.homeTeamName,
                   scheduledAt: m.scheduledAt,
                   location: m.location,
-                  status: m.status,
                   isProposer: m.proposedByTeamId === teamId,
                   isLeagueFixture: m.proposedByTeamId === null,
-                  isHome,
-                  games: m.games.map((g) => ({
-                    my: isHome ? g.homeScore : g.awayScore,
-                    opp: isHome ? g.awayScore : g.homeScore,
-                  })),
                   iEnteredScore: m.scoreEnteredByTeamId === teamId,
+                  myLineupsWon: isHome ? o.homeLineups : o.awayLineups,
+                  oppLineupsWon: isHome ? o.awayLineups : o.homeLineups,
+                  lineups: m.lineups,
                 };
               })}
             />

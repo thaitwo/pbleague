@@ -4,7 +4,9 @@ import { db } from "./index";
 import {
   divisions,
   leagues,
+  lineupPlayers,
   matchGames,
+  matchLineups,
   matches,
   teamMemberships,
   teams,
@@ -533,53 +535,150 @@ export async function cancelMatch(matchId: string) {
     .where(eq(matches.id, matchId));
 }
 
-// ---------- Phase 5: scores ----------
+// ---------- Scores (per-lineup) ----------
 
 export type GameInput = { homeScore: number; awayScore: number };
+export type LineupInput = {
+  playersPerSide: number;
+  homePlayerIds: string[];
+  awayPlayerIds: string[];
+  games: GameInput[];
+};
 
 const AUTO_CONFIRM_MS = 72 * 60 * 60 * 1000;
 
-function validateGames(games: GameInput[]) {
-  if (!Array.isArray(games) || games.length === 0) {
-    throw new Error("Enter the score for at least one game.");
+function validateGame(g: GameInput, label: string) {
+  const ok =
+    Number.isInteger(g.homeScore) &&
+    Number.isInteger(g.awayScore) &&
+    g.homeScore >= 0 &&
+    g.awayScore >= 0 &&
+    g.homeScore <= 99 &&
+    g.awayScore <= 99;
+  if (!ok) throw new Error(`${label} has an invalid score.`);
+  if (g.homeScore === g.awayScore) {
+    throw new Error(`${label} can't end in a tie — every game needs a winner.`);
   }
-  if (games.length > 7) {
-    throw new Error("A match can have at most 7 games.");
+}
+
+async function rosterUserIds(teamId: string) {
+  const rows = await db
+    .select({ userId: teamMemberships.userId })
+    .from(teamMemberships)
+    .where(
+      and(
+        eq(teamMemberships.teamId, teamId),
+        eq(teamMemberships.status, "active"),
+      ),
+    );
+  return new Set(
+    rows.map((r) => r.userId).filter((x): x is string => x !== null),
+  );
+}
+
+/** Validates lineup scores against the division template and both rosters. */
+async function validateLineups(
+  homeTeamId: string,
+  awayTeamId: string,
+  divisionId: string,
+  lineups: LineupInput[],
+) {
+  const [division] = await db
+    .select({ lineups: divisions.lineups })
+    .from(divisions)
+    .where(eq(divisions.id, divisionId))
+    .limit(1);
+  const template = division?.lineups ?? [];
+  if (!Array.isArray(lineups) || lineups.length !== template.length) {
+    throw new Error(`This match needs exactly ${template.length} lineups.`);
   }
-  games.forEach((g, i) => {
-    const ok =
-      Number.isInteger(g.homeScore) &&
-      Number.isInteger(g.awayScore) &&
-      g.homeScore >= 0 &&
-      g.awayScore >= 0 &&
-      g.homeScore <= 99 &&
-      g.awayScore <= 99;
-    if (!ok) throw new Error(`Game ${i + 1} has an invalid score.`);
-    if (g.homeScore === g.awayScore) {
-      throw new Error(`Game ${i + 1} can't end in a tie — every game needs a winner.`);
+
+  const homeRoster = await rosterUserIds(homeTeamId);
+  const awayRoster = await rosterUserIds(awayTeamId);
+
+  lineups.forEach((lu, i) => {
+    const pps = template[i].playersPerSide;
+    const n = i + 1;
+    if (lu.playersPerSide !== pps) {
+      throw new Error(`Lineup ${n} format doesn't match the division.`);
+    }
+    if (lu.homePlayerIds.length !== pps || lu.awayPlayerIds.length !== pps) {
+      throw new Error(
+        `Lineup ${n} needs ${pps} player${pps === 1 ? "" : "s"} per side.`,
+      );
+    }
+    if (
+      new Set(lu.homePlayerIds).size !== pps ||
+      new Set(lu.awayPlayerIds).size !== pps
+    ) {
+      throw new Error(`Lineup ${n} has a player listed twice.`);
+    }
+    for (const id of lu.homePlayerIds) {
+      if (!homeRoster.has(id)) {
+        throw new Error(`Lineup ${n}: a home player isn't on the roster.`);
+      }
+    }
+    for (const id of lu.awayPlayerIds) {
+      if (!awayRoster.has(id)) {
+        throw new Error(`Lineup ${n}: an away player isn't on the roster.`);
+      }
+    }
+    if (lu.games.length < 1 || lu.games.length > 3) {
+      throw new Error(`Lineup ${n} must have 1 to 3 games.`);
+    }
+    let homeWins = 0;
+    let awayWins = 0;
+    lu.games.forEach((g, gi) => {
+      validateGame(g, `Lineup ${n} game ${gi + 1}`);
+      if (g.homeScore > g.awayScore) homeWins++;
+      else awayWins++;
+    });
+    if (homeWins === awayWins) {
+      throw new Error(`Lineup ${n} needs a winner.`);
     }
   });
 }
 
-async function replaceGames(matchId: string, games: GameInput[]) {
-  await db.delete(matchGames).where(eq(matchGames.matchId, matchId));
-  await db.insert(matchGames).values(
-    games.map((g, i) => ({
-      matchId,
-      gameNumber: i + 1,
-      homeScore: g.homeScore,
-      awayScore: g.awayScore,
-    })),
-  );
+async function replaceLineups(matchId: string, lineups: LineupInput[]) {
+  await db.delete(matchLineups).where(eq(matchLineups.matchId, matchId));
+  for (let i = 0; i < lineups.length; i++) {
+    const lu = lineups[i];
+    const [ml] = await db
+      .insert(matchLineups)
+      .values({ matchId, position: i + 1, playersPerSide: lu.playersPerSide })
+      .returning();
+    const players = [
+      ...lu.homePlayerIds.map((userId) => ({
+        matchLineupId: ml.id,
+        side: "home" as const,
+        userId,
+      })),
+      ...lu.awayPlayerIds.map((userId) => ({
+        matchLineupId: ml.id,
+        side: "away" as const,
+        userId,
+      })),
+    ];
+    if (players.length) await db.insert(lineupPlayers).values(players);
+    if (lu.games.length) {
+      await db.insert(matchGames).values(
+        lu.games.map((g, gi) => ({
+          matchLineupId: ml.id,
+          gameNumber: gi + 1,
+          homeScore: g.homeScore,
+          awayScore: g.awayScore,
+        })),
+      );
+    }
+  }
 }
 
 export async function enterScore(
   matchId: string,
   enteringTeamId: string,
-  games: GameInput[],
+  lineups: LineupInput[],
   userId: string,
 ) {
-  validateGames(games);
   const [match] = await db
     .select()
     .from(matches)
@@ -599,7 +698,13 @@ export async function enterScore(
         : "You can only record a score once a match is scheduled.",
     );
   }
-  await replaceGames(matchId, games);
+  await validateLineups(
+    match.homeTeamId,
+    match.awayTeamId,
+    match.divisionId,
+    lineups,
+  );
+  await replaceLineups(matchId, lineups);
   await db
     .update(matches)
     .set({
@@ -654,17 +759,22 @@ export async function disputeScore(matchId: string) {
 /** Admin override: set the final score and confirm, regardless of current state. */
 export async function resolveScore(
   matchId: string,
-  games: GameInput[],
+  lineups: LineupInput[],
   userId: string,
 ) {
-  validateGames(games);
   const [match] = await db
     .select()
     .from(matches)
     .where(eq(matches.id, matchId))
     .limit(1);
   if (!match) throw new Error("Match not found.");
-  await replaceGames(matchId, games);
+  await validateLineups(
+    match.homeTeamId,
+    match.awayTeamId,
+    match.divisionId,
+    lineups,
+  );
+  await replaceLineups(matchId, lineups);
   await db
     .update(matches)
     .set({

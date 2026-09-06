@@ -16,7 +16,9 @@ import { db } from "./index";
 import {
   divisions,
   leagues,
+  lineupPlayers,
   matchGames,
+  matchLineups,
   matches,
   teamMemberships,
   teams,
@@ -370,6 +372,17 @@ export type MatchGame = {
   awayScore: number;
 };
 
+export type LineupPlayer = { userId: string; name: string | null };
+
+export type MatchLineupView = {
+  id: string;
+  position: number;
+  playersPerSide: number;
+  homePlayers: LineupPlayer[];
+  awayPlayers: LineupPlayer[];
+  games: MatchGame[];
+};
+
 export type MatchView = {
   id: string;
   divisionId: string;
@@ -383,28 +396,74 @@ export type MatchView = {
   proposedByTeamId: string | null;
   scoreEnteredByTeamId: string | null;
   scoreEnteredAt: Date | null;
-  games: MatchGame[];
+  lineups: MatchLineupView[];
 };
 
 const homeTeam = alias(teams, "home_team");
 const awayTeam = alias(teams, "away_team");
 
-async function gamesByMatch(matchIds: string[]) {
-  const byMatch = new Map<string, MatchGame[]>();
+async function lineupsByMatch(matchIds: string[]) {
+  const byMatch = new Map<string, MatchLineupView[]>();
   if (matchIds.length === 0) return byMatch;
-  const rows = await db
+
+  const lineupRows = await db
+    .select()
+    .from(matchLineups)
+    .where(inArray(matchLineups.matchId, matchIds))
+    .orderBy(asc(matchLineups.position));
+  if (lineupRows.length === 0) return byMatch;
+
+  const lineupIds = lineupRows.map((l) => l.id);
+
+  const gameRows = await db
     .select()
     .from(matchGames)
-    .where(inArray(matchGames.matchId, matchIds))
+    .where(inArray(matchGames.matchLineupId, lineupIds))
     .orderBy(asc(matchGames.gameNumber));
-  for (const row of rows) {
-    const list = byMatch.get(row.matchId) ?? [];
+  const gamesByLineup = new Map<string, MatchGame[]>();
+  for (const g of gameRows) {
+    const list = gamesByLineup.get(g.matchLineupId) ?? [];
     list.push({
-      gameNumber: row.gameNumber,
-      homeScore: row.homeScore,
-      awayScore: row.awayScore,
+      gameNumber: g.gameNumber,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
     });
-    byMatch.set(row.matchId, list);
+    gamesByLineup.set(g.matchLineupId, list);
+  }
+
+  const playerRows = await db
+    .select({
+      matchLineupId: lineupPlayers.matchLineupId,
+      side: lineupPlayers.side,
+      userId: lineupPlayers.userId,
+      name: user.name,
+    })
+    .from(lineupPlayers)
+    .leftJoin(user, eq(lineupPlayers.userId, user.id))
+    .where(inArray(lineupPlayers.matchLineupId, lineupIds));
+  const playersByLineup = new Map<
+    string,
+    { home: LineupPlayer[]; away: LineupPlayer[] }
+  >();
+  for (const p of playerRows) {
+    const entry = playersByLineup.get(p.matchLineupId) ?? { home: [], away: [] };
+    entry[p.side].push({ userId: p.userId, name: p.name ?? null });
+    playersByLineup.set(p.matchLineupId, entry);
+  }
+
+  for (const l of lineupRows) {
+    const players = playersByLineup.get(l.id) ?? { home: [], away: [] };
+    const view: MatchLineupView = {
+      id: l.id,
+      position: l.position,
+      playersPerSide: l.playersPerSide,
+      homePlayers: players.home,
+      awayPlayers: players.away,
+      games: gamesByLineup.get(l.id) ?? [],
+    };
+    const list = byMatch.get(l.matchId) ?? [];
+    list.push(view);
+    byMatch.set(l.matchId, list);
   }
   return byMatch;
 }
@@ -431,8 +490,33 @@ async function selectMatches(where: SQL | undefined): Promise<MatchView[]> {
     .where(where)
     .orderBy(asc(matches.scheduledAt));
 
-  const games = await gamesByMatch(rows.map((r) => r.id));
-  return rows.map((r) => ({ ...r, games: games.get(r.id) ?? [] }));
+  const lineups = await lineupsByMatch(rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, lineups: lineups.get(r.id) ?? [] }));
+}
+
+/** Per-match summary of lineup/game outcomes from the home team's perspective. */
+export function matchOutcome(m: MatchView) {
+  let homeLineups = 0;
+  let awayLineups = 0;
+  let homeGames = 0;
+  let awayGames = 0;
+  let homePoints = 0;
+  let awayPoints = 0;
+  for (const lu of m.lineups) {
+    let hg = 0;
+    let ag = 0;
+    for (const g of lu.games) {
+      homePoints += g.homeScore;
+      awayPoints += g.awayScore;
+      if (g.homeScore > g.awayScore) hg++;
+      else if (g.awayScore > g.homeScore) ag++;
+    }
+    homeGames += hg;
+    awayGames += ag;
+    if (hg > ag) homeLineups++;
+    else if (ag > hg) awayLineups++;
+  }
+  return { homeLineups, awayLineups, homeGames, awayGames, homePoints, awayPoints };
 }
 
 /** Other teams in the same division — candidate opponents. */
@@ -506,6 +590,36 @@ export async function getDivisionMatches(
   );
 }
 
+export type RosterPlayer = { userId: string; name: string };
+
+/** Active, claimed players for each of the given teams — for lineup pickers. */
+export async function getActiveRostersByTeam(
+  teamIds: string[],
+): Promise<Record<string, RosterPlayer[]>> {
+  const out: Record<string, RosterPlayer[]> = {};
+  if (teamIds.length === 0) return out;
+  const rows = await db
+    .select({
+      teamId: teamMemberships.teamId,
+      userId: teamMemberships.userId,
+      name: user.name,
+    })
+    .from(teamMemberships)
+    .leftJoin(user, eq(teamMemberships.userId, user.id))
+    .where(
+      and(
+        inArray(teamMemberships.teamId, teamIds),
+        eq(teamMemberships.status, "active"),
+      ),
+    )
+    .orderBy(asc(user.name));
+  for (const r of rows) {
+    if (!r.userId) continue; // only claimed members can be assigned to a lineup
+    (out[r.teamId] ??= []).push({ userId: r.userId, name: r.name ?? "" });
+  }
+  return out;
+}
+
 /** True once a division has any non-cancelled fixture (i.e. a schedule exists). */
 export async function divisionHasSchedule(
   divisionId: string,
@@ -531,12 +645,13 @@ export type StandingRow = {
   played: number;
   wins: number;
   losses: number;
+  lineupsWon: number;
+  lineupsLost: number;
   gamesWon: number;
   gamesLost: number;
   pointsFor: number;
   pointsAgainst: number;
   pointDiff: number;
-  gameWinPct: number;
   streak: string;
 };
 
@@ -571,83 +686,69 @@ export async function getDivisionStandings(
       played: 0,
       wins: 0,
       losses: 0,
+      lineupsWon: 0,
+      lineupsLost: 0,
       gamesWon: 0,
       gamesLost: 0,
       pointsFor: 0,
       pointsAgainst: 0,
       pointDiff: 0,
-      gameWinPct: 0,
       streak: "—",
     });
     chron.set(t.id, []);
   }
-
-  // head-to-head: winner -> loser -> count
-  const h2h = new Map<string, Map<string, number>>();
-  const addH2h = (w: string, l: string) => {
-    const inner = h2h.get(w) ?? new Map<string, number>();
-    inner.set(l, (inner.get(l) ?? 0) + 1);
-    h2h.set(w, inner);
-  };
 
   for (const m of confirmed) {
     const home = acc.get(m.homeTeamId);
     const away = acc.get(m.awayTeamId);
     if (!home || !away) continue;
 
-    let hg = 0;
-    let ag = 0;
-    let hp = 0;
-    let ap = 0;
-    for (const g of m.games) {
-      hp += g.homeScore;
-      ap += g.awayScore;
-      if (g.homeScore > g.awayScore) hg++;
-      else if (g.awayScore > g.homeScore) ag++;
-    }
-
+    const o = matchOutcome(m);
     home.played++;
     away.played++;
-    home.gamesWon += hg;
-    home.gamesLost += ag;
-    away.gamesWon += ag;
-    away.gamesLost += hg;
-    home.pointsFor += hp;
-    home.pointsAgainst += ap;
-    away.pointsFor += ap;
-    away.pointsAgainst += hp;
+    home.lineupsWon += o.homeLineups;
+    home.lineupsLost += o.awayLineups;
+    away.lineupsWon += o.awayLineups;
+    away.lineupsLost += o.homeLineups;
+    home.gamesWon += o.homeGames;
+    home.gamesLost += o.awayGames;
+    away.gamesWon += o.awayGames;
+    away.gamesLost += o.homeGames;
+    home.pointsFor += o.homePoints;
+    home.pointsAgainst += o.awayPoints;
+    away.pointsFor += o.awayPoints;
+    away.pointsAgainst += o.homePoints;
 
-    if (hg > ag) {
+    // Match winner: more lineups, tiebreak by total games won.
+    const homeWon =
+      o.homeLineups > o.awayLineups ||
+      (o.homeLineups === o.awayLineups && o.homeGames > o.awayGames);
+    const awayWon =
+      o.awayLineups > o.homeLineups ||
+      (o.homeLineups === o.awayLineups && o.awayGames > o.homeGames);
+    if (homeWon) {
       home.wins++;
       away.losses++;
-      addH2h(m.homeTeamId, m.awayTeamId);
       chron.get(m.homeTeamId)!.push(true);
       chron.get(m.awayTeamId)!.push(false);
-    } else if (ag > hg) {
+    } else if (awayWon) {
       away.wins++;
       home.losses++;
-      addH2h(m.awayTeamId, m.homeTeamId);
       chron.get(m.awayTeamId)!.push(true);
       chron.get(m.homeTeamId)!.push(false);
     }
-    // equal game wins → treated as no result (shouldn't happen in a decided match)
   }
 
   const rows = [...acc.values()];
   for (const r of rows) {
     r.pointDiff = r.pointsFor - r.pointsAgainst;
-    const totalGames = r.gamesWon + r.gamesLost;
-    r.gameWinPct = totalGames > 0 ? r.gamesWon / totalGames : 0;
     r.streak = streakLabel(chron.get(r.teamId)!);
   }
 
   rows.sort((a, b) => {
     if (a.wins !== b.wins) return b.wins - a.wins;
-    // head-to-head between the two tied teams
-    const ab = h2h.get(a.teamId)?.get(b.teamId) ?? 0;
-    const ba = h2h.get(b.teamId)?.get(a.teamId) ?? 0;
-    if (ab !== ba) return ba - ab;
-    if (a.gameWinPct !== b.gameWinPct) return b.gameWinPct - a.gameWinPct;
+    if (a.lineupsWon !== b.lineupsWon) return b.lineupsWon - a.lineupsWon;
+    if (a.gamesWon !== b.gamesWon) return b.gamesWon - a.gamesWon;
     if (a.pointDiff !== b.pointDiff) return b.pointDiff - a.pointDiff;
     return a.teamName.localeCompare(b.teamName);
   });

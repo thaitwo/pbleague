@@ -199,11 +199,36 @@ export const matches = pgTable("matches", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const matchGames = pgTable("match_games", {
+// A team match is played as a series of lineups (singles/doubles slots),
+// mirroring the division's lineup template. Each lineup has assigned players
+// per side and one or more games.
+export const matchLineups = pgTable("match_lineups", {
   id: uuid("id").primaryKey().defaultRandom(),
   matchId: uuid("match_id")
     .notNull()
     .references(() => matches.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  playersPerSide: integer("players_per_side").notNull(),
+});
+
+export const lineupSide = pgEnum("lineup_side", ["home", "away"]);
+
+export const lineupPlayers = pgTable("lineup_players", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchLineupId: uuid("match_lineup_id")
+    .notNull()
+    .references(() => matchLineups.id, { onDelete: "cascade" }),
+  side: lineupSide("side").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+});
+
+export const matchGames = pgTable("match_games", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchLineupId: uuid("match_lineup_id")
+    .notNull()
+    .references(() => matchLineups.id, { onDelete: "cascade" }),
   gameNumber: integer("game_number").notNull(),
   homeScore: integer("home_score").notNull(),
   awayScore: integer("away_score").notNull(),

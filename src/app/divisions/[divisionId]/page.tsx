@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { autoConfirmStaleScores } from "@/db/mutations";
-import { getDivisionPublic, type MatchView } from "@/db/queries";
+import { getDivisionPublic, matchOutcome, type MatchView } from "@/db/queries";
 import { divisionDisplayName } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 
@@ -18,19 +18,13 @@ function fmtDiff(n: number) {
 }
 
 function resultLine(m: MatchView) {
-  const homeGames = m.games.filter((g) => g.homeScore > g.awayScore).length;
-  const awayGames = m.games.filter((g) => g.awayScore > g.homeScore).length;
-  const homeWon = homeGames > awayGames;
+  const o = matchOutcome(m);
+  const homeWon = o.homeLineups > o.awayLineups;
   const winner = homeWon ? m.homeTeamName : m.awayTeamName;
   const loser = homeWon ? m.awayTeamName : m.homeTeamName;
-  const line = m.games
-    .map((g) =>
-      homeWon
-        ? `${g.homeScore}–${g.awayScore}`
-        : `${g.awayScore}–${g.homeScore}`,
-    )
-    .join(", ");
-  return `${winner} def. ${loser} (${line})`;
+  const won = Math.max(o.homeLineups, o.awayLineups);
+  const lost = Math.min(o.homeLineups, o.awayLineups);
+  return `${winner} def. ${loser} (${won}–${lost})`;
 }
 
 export default async function DivisionStandingsPage({
@@ -62,7 +56,7 @@ export default async function DivisionStandingsPage({
               <CardTitle className="text-base">Standings</CardTitle>
               <CardDescription>
                 {anyPlayed
-                  ? "Ranked by wins, then head-to-head, game win %, and point differential."
+                  ? "Ranked by match wins, then lineups won, games won, and point differential."
                   : "No matches have been played yet."}
               </CardDescription>
             </CardHeader>
@@ -80,6 +74,9 @@ export default async function DivisionStandingsPage({
                         <th className="py-2 pr-2 font-medium">Team</th>
                         <th className="py-2 pr-2 text-right font-medium">W</th>
                         <th className="py-2 pr-2 text-right font-medium">L</th>
+                        <th className="py-2 pr-2 text-right font-medium">
+                          Lineups
+                        </th>
                         <th className="py-2 pr-2 text-right font-medium">
                           Games
                         </th>
@@ -104,6 +101,9 @@ export default async function DivisionStandingsPage({
                           </td>
                           <td className="py-2 pr-2 text-right">{r.wins}</td>
                           <td className="py-2 pr-2 text-right">{r.losses}</td>
+                          <td className="py-2 pr-2 text-right text-muted-foreground">
+                            {r.lineupsWon}–{r.lineupsLost}
+                          </td>
                           <td className="py-2 pr-2 text-right text-muted-foreground">
                             {r.gamesWon}–{r.gamesLost}
                           </td>

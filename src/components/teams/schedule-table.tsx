@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScoreEntryForm } from "@/components/teams/score-entry-form";
+import { LineupScoreForm } from "@/components/teams/lineup-score-form";
 import {
   acceptMatchAction,
   cancelMatchAction,
@@ -42,7 +42,7 @@ import {
   setFixtureTimeAction,
   type RowActionResult,
 } from "@/app/teams/actions";
-import type { MatchStatus } from "@/db/queries";
+import type { MatchLineupView, MatchStatus, RosterPlayer } from "@/db/queries";
 import { formatDate } from "@/lib/format";
 
 const STATUS_VARIANT: Record<
@@ -70,15 +70,21 @@ const STATUS_LABEL: Record<MatchStatus, string> = {
 
 export type ScheduleMatch = {
   matchId: string;
+  status: MatchStatus;
+  isHome: boolean;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeTeamName: string;
+  awayTeamName: string;
   opponentName: string;
   scheduledAt: Date | null;
   location: string | null;
-  status: MatchStatus;
   isProposer: boolean;
   isLeagueFixture: boolean;
-  isHome: boolean;
-  games: { my: number; opp: number }[];
   iEnteredScore: boolean;
+  myLineupsWon: number;
+  oppLineupsWon: number;
+  lineups: MatchLineupView[];
 };
 
 type ScheduleTableProps = {
@@ -86,6 +92,8 @@ type ScheduleTableProps = {
   matches: ScheduleMatch[];
   canManage: boolean;
   isAdmin: boolean;
+  lineupTemplate: { playersPerSide: number }[];
+  rosters: Record<string, RosterPlayer[]>;
 };
 
 type ActiveAction = {
@@ -101,11 +109,19 @@ function formatTime(d: Date | null): string | null {
   });
 }
 
+const hasScore = (m: ScheduleMatch) =>
+  m.lineups.length > 0 &&
+  (m.status === "completed" ||
+    m.status === "confirmed" ||
+    m.status === "disputed");
+
 export function ScheduleTable({
   myTeamId,
   matches,
   canManage,
   isAdmin,
+  lineupTemplate,
+  rosters,
 }: ScheduleTableProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -147,16 +163,9 @@ export function ScheduleTable({
         </TableHeader>
         <TableBody>
           {matches.map((m) => {
-            const myGamesWon = m.games.filter((g) => g.my > g.opp).length;
-            const oppGamesWon = m.games.filter((g) => g.opp > g.my).length;
-            const iWon = myGamesWon > oppGamesWon;
-            const scoreLine =
-              m.games.length > 0 && m.status !== "cancelled"
-                ? m.games.map((g) => `${g.my}–${g.opp}`).join(", ")
-                : "—";
+            const iWon = m.myLineupsWon > m.oppLineupsWon;
             const date = formatDate(m.scheduledAt) ?? "TBD";
             const time = formatTime(m.scheduledAt) ?? "TBD";
-
             return (
               <TableRow key={m.matchId}>
                 <TableCell>
@@ -177,7 +186,7 @@ export function ScheduleTable({
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {scoreLine}
+                  {hasScore(m) ? `${m.myLineupsWon}–${m.oppLineupsWon}` : "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{date}</TableCell>
                 <TableCell className="text-muted-foreground">{time}</TableCell>
@@ -215,7 +224,7 @@ export function ScheduleTable({
 
       {active?.mode === "score-enter" || active?.mode === "score-resolve" ? (
         <Dialog open onOpenChange={(o) => !o && setActive(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {active.mode === "score-resolve"
@@ -223,32 +232,24 @@ export function ScheduleTable({
                   : "Enter score"}
               </DialogTitle>
               <DialogDescription>
-                vs {active.match.opponentName}
+                {active.match.homeTeamName} vs {active.match.awayTeamName}
               </DialogDescription>
             </DialogHeader>
-            <ScoreEntryForm
-              myLabel="Your score"
-              oppLabel={active.match.opponentName}
-              submitLabel={
-                active.mode === "score-resolve"
-                  ? "Save final score"
-                  : "Save score"
-              }
-              initialGames={active.match.games.map((g) => ({
-                myScore: g.my,
-                oppScore: g.opp,
-              }))}
+            <LineupScoreForm
+              myTeamId={myTeamId}
+              mode={active.mode === "score-resolve" ? "resolve" : "enter"}
+              template={lineupTemplate}
+              homeTeamName={active.match.homeTeamName}
+              awayTeamName={active.match.awayTeamName}
+              homeRoster={rosters[active.match.homeTeamId] ?? []}
+              awayRoster={rosters[active.match.awayTeamId] ?? []}
+              existing={active.match.lineups}
               onClose={() => setActive(null)}
-              onSubmit={(entered) => {
-                const games = entered.map((g) =>
-                  active.match.isHome
-                    ? { homeScore: g.myScore, awayScore: g.oppScore }
-                    : { homeScore: g.oppScore, awayScore: g.myScore },
-                );
-                return active.mode === "score-resolve"
-                  ? resolveScoreAction(active.match.matchId, games)
-                  : enterScoreAction(active.match.matchId, myTeamId, games);
-              }}
+              onSubmit={(lineups) =>
+                active.mode === "score-resolve"
+                  ? resolveScoreAction(active.match.matchId, lineups)
+                  : enterScoreAction(active.match.matchId, myTeamId, lineups)
+              }
             />
           </DialogContent>
         </Dialog>

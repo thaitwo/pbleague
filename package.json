@@ -18,7 +18,9 @@
     "migrate:divisions": "tsx scripts/migrate-divisions.ts",
     "migrate:divisions:prod": "tsx scripts/migrate-divisions-prod.ts",
     "migrate:lineups": "tsx scripts/migrate-lineups.ts",
-    "migrate:lineups:prod": "tsx scripts/migrate-lineups-prod.ts"
+    "migrate:lineups:prod": "tsx scripts/migrate-lineups-prod.ts",
+    "migrate:lineup-scoring": "tsx scripts/migrate-lineup-scoring.ts",
+    "migrate:lineup-scoring:prod": "tsx scripts/migrate-lineup-scoring-prod.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

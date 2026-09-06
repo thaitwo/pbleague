@@ -347,7 +347,12 @@ export async function cancelMatchAction(
 
 // ---------- Phase 5: scores ----------
 
-type GameInput = { homeScore: number; awayScore: number };
+type LineupInput = {
+  playersPerSide: number;
+  homePlayerIds: string[];
+  awayPlayerIds: string[];
+  games: { homeScore: number; awayScore: number }[];
+};
 
 function revalidateScored(match: {
   homeTeamId: string;
@@ -374,7 +379,7 @@ function confirmingTeamId(match: {
 export async function enterScoreAction(
   matchId: string,
   enteringTeamId: string,
-  games: GameInput[],
+  lineups: LineupInput[],
 ): Promise<RowActionResult> {
   const session = await getSession();
   if (!session || !(await canManageTeam(session, enteringTeamId))) {
@@ -383,7 +388,7 @@ export async function enterScoreAction(
   const match = await getMatch(matchId);
   if (!match) return fail("Match not found.");
   try {
-    await mutations.enterScore(matchId, enteringTeamId, games, session.user.id);
+    await mutations.enterScore(matchId, enteringTeamId, lineups, session.user.id);
   } catch (e) {
     return fail(errorMessage(e));
   }
@@ -431,7 +436,7 @@ export async function disputeScoreAction(
 
 export async function resolveScoreAction(
   matchId: string,
-  games: GameInput[],
+  lineups: LineupInput[],
 ): Promise<RowActionResult> {
   const session = await getSession();
   if (!session || session.user.role !== "admin") {
@@ -440,7 +445,7 @@ export async function resolveScoreAction(
   const match = await getMatch(matchId);
   if (!match) return fail("Match not found.");
   try {
-    await mutations.resolveScore(matchId, games, session.user.id);
+    await mutations.resolveScore(matchId, lineups, session.user.id);
   } catch (e) {
     return fail(errorMessage(e));
   }

@@ -85,6 +85,10 @@ async function main() {
     return d.id;
   }
 
+  const teamPlayers: Record<string, string[]> = {};
+  const emailToId = (email: string) =>
+    email === ADMIN_EMAIL ? scorerId : ids[email];
+
   async function team(
     divisionId: string,
     name: string,
@@ -99,15 +103,49 @@ async function main() {
     });
     if (opts.coCaptain) await m.assignRoleByEmail(t.id, opts.coCaptain, "co_captain");
     for (const p of opts.players ?? []) await m.assignRoleByEmail(t.id, p, "player");
+    const emails = [
+      captainEmail,
+      ...(opts.coCaptain ? [opts.coCaptain] : []),
+      ...(opts.players ?? []),
+    ];
+    teamPlayers[t.id] = emails
+      .map(emailToId)
+      .filter((x): x is string => Boolean(x));
     return t.id;
   }
 
-  type Outcome = "scheduled" | "awaiting" | "disputed" | "proposed";
+  // Three doubles lineups where the home team wins `homeWins` of them.
+  function buildLineups(homeId: string, awayId: string, homeWins: number) {
+    const h = teamPlayers[homeId];
+    const a = teamPlayers[awayId];
+    return [0, 1, 2].map((k) => ({
+      playersPerSide: 2,
+      homePlayerIds: [h[0], h[1]],
+      awayPlayerIds: [a[0], a[1]],
+      games:
+        k < homeWins
+          ? [
+              { homeScore: 11, awayScore: 6 },
+              { homeScore: 11, awayScore: 8 },
+            ]
+          : [
+              { homeScore: 6, awayScore: 11 },
+              { homeScore: 8, awayScore: 11 },
+            ],
+    }));
+  }
+
+  type Outcome =
+    | "scheduled"
+    | "proposed"
+    | "awaiting"
+    | "disputed"
+    | { confirmed: number };
   async function match(
     homeId: string,
     awayId: string,
     when: Date,
-    outcome: Outcome | { confirmed: [number, number][] },
+    outcome: Outcome,
     location = "Community Center",
   ) {
     const proposed = await m.proposeMatch({
@@ -120,20 +158,17 @@ async function main() {
     await m.acceptMatch(proposed.id);
     if (outcome === "scheduled") return;
 
-    if (typeof outcome === "object") {
-      const games = outcome.confirmed.map(([h, a]) => ({ homeScore: h, awayScore: a }));
-      await m.enterScore(proposed.id, homeId, games, enteredBy);
-      await m.confirmScore(proposed.id, enteredBy);
-      return;
-    }
-    // awaiting / disputed: home enters a score, opponent hasn't confirmed
+    // Scored: a confirmed lineup count, or home enters a 2–1 win that's
+    // awaiting confirmation / disputed.
+    const homeWins = typeof outcome === "object" ? outcome.confirmed : 2;
     await m.enterScore(
       proposed.id,
       homeId,
-      [{ homeScore: 11, awayScore: 6 }],
+      buildLineups(homeId, awayId, homeWins),
       enteredBy,
     );
     if (outcome === "disputed") await m.disputeScore(proposed.id);
+    else if (typeof outcome === "object") await m.confirmScore(proposed.id, enteredBy);
   }
 
   // ===== One demo season with several divisions =====
@@ -172,12 +207,12 @@ async function main() {
   // a player waiting on approval to join Paddle Battalion
   await m.requestToJoin(paddle, ids["pat@demo.pbl"]);
 
-  // confirmed results (feed standings)
-  await match(dinkers, crashers, daysFromNow(-14), { confirmed: [[11, 6], [11, 8]] });
-  await match(dinkers, gains, daysFromNow(-12), { confirmed: [[11, 9], [8, 11], [11, 7]] });
-  await match(crashers, paddle, daysFromNow(-11), { confirmed: [[11, 4], [11, 9]] });
-  await match(gains, paddle, daysFromNow(-9), { confirmed: [[11, 7], [11, 5]] });
-  await match(crashers, gains, daysFromNow(-7), { confirmed: [[11, 8], [9, 11], [12, 10]] });
+  // confirmed results (feed standings) — home wins N of 3 lineups
+  await match(dinkers, crashers, daysFromNow(-14), { confirmed: 2 });
+  await match(dinkers, gains, daysFromNow(-12), { confirmed: 2 });
+  await match(crashers, paddle, daysFromNow(-11), { confirmed: 3 });
+  await match(gains, paddle, daysFromNow(-9), { confirmed: 2 });
+  await match(crashers, gains, daysFromNow(-7), { confirmed: 1 });
   // upcoming, proposed, awaiting confirmation (Dinkers must confirm), disputed
   await match(dinkers, paddle, daysFromNow(6), "scheduled");
   await match(gains, dinkers, daysFromNow(9), "proposed");
@@ -199,7 +234,7 @@ async function main() {
   });
   // a team whose captain was invited by email but hasn't signed up yet
   await team(b, "Baseline Bandits", "newcoach@demo.pbl");
-  await match(smash, rally, daysFromNow(-5), { confirmed: [[11, 9], [11, 6]] });
+  await match(smash, rally, daysFromNow(-5), { confirmed: 2 });
 
   // --- Division C: 9.0 Mixed combo (draft, no teams) ---
   await division(season.id, {
