@@ -93,14 +93,8 @@ export default async function TeamPage({
             ? `/admin/divisions/${division.id}`
             : `/divisions/${division.id}`
         }
-        description={`${members.length}${
-          team.rosterCap ? `/${team.rosterCap}` : ""
-        } member${members.length === 1 ? "" : "s"}`}
         titleExtra={
-          <>
-            <Badge variant="secondary">{league.name}</Badge>
-            <Badge variant="outline">{divisionDisplayName(division)}</Badge>
-          </>
+          <Badge variant="outline">{divisionDisplayName(division)}</Badge>
         }
         action={
           <div className="flex items-center gap-2">
