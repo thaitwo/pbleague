@@ -15,9 +15,9 @@ import { EditTeamDialog } from "@/components/admin/edit-team-dialog";
 import { AddPlayerDialog } from "@/components/admin/add-player-dialog";
 import { ActionButton } from "@/components/teams/action-button";
 import { InvitePanel } from "@/components/teams/invite-panel";
-import { MatchCard } from "@/components/teams/match-card";
 import { ProposeMatchForm } from "@/components/teams/propose-match-form";
 import { RosterRowActions } from "@/components/teams/roster-row-actions";
+import { ScheduleTable } from "@/components/teams/schedule-table";
 import { PageHeader } from "@/components/page-header";
 import {
   approveRequestAction,
@@ -33,7 +33,6 @@ import {
 } from "@/db/queries";
 import { getSession } from "@/lib/auth-guard";
 import { divisionDisplayName } from "@/lib/constants";
-import { formatDateTime } from "@/lib/format";
 import { canManageLeadership, canManageTeam } from "@/lib/team-perms";
 
 const ROLE_LABEL = {
@@ -122,6 +121,60 @@ export default async function TeamPage({
         }
       />
 
+      {/* Schedule (full width — the table needs the room) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Schedule</CardTitle>
+          <CardDescription>
+            {hasSchedule
+              ? "Your league schedule is set. Set the date & time for your home matches; away matches are scheduled by the host."
+              : `Propose matches against other teams in ${league.name}; the other captain accepts or counters with a new time.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          {isManager &&
+            !hasSchedule &&
+            (opponents.length > 0 ? (
+              <ProposeMatchForm teamId={teamId} opponents={opponents} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No other teams in this league yet — an admin needs to add one to
+                schedule a match.
+              </p>
+            ))}
+
+          {teamMatches.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No matches scheduled yet.
+            </p>
+          ) : (
+            <ScheduleTable
+              myTeamId={teamId}
+              canManage={isManager}
+              isAdmin={isAdmin}
+              matches={teamMatches.map((m) => {
+                const isHome = m.homeTeamId === teamId;
+                return {
+                  matchId: m.id,
+                  opponentName: isHome ? m.awayTeamName : m.homeTeamName,
+                  scheduledAt: m.scheduledAt,
+                  location: m.location,
+                  status: m.status,
+                  isProposer: m.proposedByTeamId === teamId,
+                  isLeagueFixture: m.proposedByTeamId === null,
+                  isHome,
+                  games: m.games.map((g) => ({
+                    my: isHome ? g.homeScore : g.awayScore,
+                    opp: isHome ? g.awayScore : g.homeScore,
+                  })),
+                  iEnteredScore: m.scoreEnteredByTeamId === teamId,
+                };
+              })}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left column */}
         <div className="flex flex-col gap-6 lg:col-span-2">
@@ -177,63 +230,6 @@ export default async function TeamPage({
                     </li>
                   ))}
                 </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Schedule */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Schedule</CardTitle>
-              <CardDescription>
-                {hasSchedule
-                  ? "Your league schedule is set. Set the date & time for your home matches; away matches are scheduled by the host."
-                  : `Propose matches against other teams in ${league.name}; the other captain accepts or counters with a new time.`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              {isManager &&
-                !hasSchedule &&
-                (opponents.length > 0 ? (
-                  <ProposeMatchForm teamId={teamId} opponents={opponents} />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No other teams in this league yet — an admin needs to add one
-                    to schedule a match.
-                  </p>
-                ))}
-
-              {teamMatches.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No matches scheduled yet.
-                </p>
-              ) : (
-                <div className="flex flex-col divide-y">
-                  {teamMatches.map((m) => {
-                    const isHome = m.homeTeamId === teamId;
-                    return (
-                      <MatchCard
-                        key={m.id}
-                        matchId={m.id}
-                        myTeamId={teamId}
-                        opponentName={isHome ? m.awayTeamName : m.homeTeamName}
-                        whenLabel={formatDateTime(m.scheduledAt)}
-                        location={m.location}
-                        status={m.status}
-                        isProposer={m.proposedByTeamId === teamId}
-                        isLeagueFixture={m.proposedByTeamId === null}
-                        canManage={isManager}
-                        isHome={isHome}
-                        games={m.games.map((g) => ({
-                          my: isHome ? g.homeScore : g.awayScore,
-                          opp: isHome ? g.awayScore : g.homeScore,
-                        }))}
-                        iEnteredScore={m.scoreEnteredByTeamId === teamId}
-                        isAdmin={isAdmin}
-                      />
-                    );
-                  })}
-                </div>
               )}
             </CardContent>
           </Card>
