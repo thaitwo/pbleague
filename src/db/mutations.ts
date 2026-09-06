@@ -46,6 +46,7 @@ type DivisionInput = {
   ratingType: "single" | "combo";
   gender: "mens" | "womens" | "mixed";
   ageGroup: string;
+  lineups: { playersPerSide: number }[];
   seasonStart?: Date | null;
   seasonEnd?: Date | null;
   status?: "draft" | "active" | "completed";

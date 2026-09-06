@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ActionState } from "@/app/admin/actions";
-import { AGE_GROUPS, GENDER_LABEL, GENDERS } from "@/lib/constants";
+import {
+  AGE_GROUPS,
+  DEFAULT_LINEUPS,
+  GENDER_LABEL,
+  GENDERS,
+  MIN_LINEUPS,
+} from "@/lib/constants";
 
 const RATING_TYPE_OPTIONS = [
   { value: "single", label: "Single skill level" },
@@ -32,6 +39,7 @@ export type DivisionFormInitial = {
   ratingType: string;
   gender: string;
   ageGroup: string;
+  lineups: { playersPerSide: number }[];
   status: string;
   seasonStart: string;
   seasonEnd: string;
@@ -43,6 +51,7 @@ const EMPTY: DivisionFormInitial = {
   ratingType: "single",
   gender: "mixed",
   ageGroup: "18 & Over",
+  lineups: DEFAULT_LINEUPS,
   status: "draft",
   seasonStart: "",
   seasonEnd: "",
@@ -68,6 +77,9 @@ export function DivisionForm({
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
     {},
+  );
+  const [lineups, setLineups] = useState<{ playersPerSide: number }[]>(
+    initial.lineups,
   );
 
   useEffect(() => {
@@ -148,6 +160,67 @@ export function DivisionForm({
           placeholder="Auto-named from the facets above"
         />
       </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Lineups</Label>
+        <p className="text-xs text-muted-foreground">
+          Each team match is played as these lineups, in order.
+        </p>
+        <input type="hidden" name="lineups" value={JSON.stringify(lineups)} />
+        <div className="flex flex-col gap-2">
+          {lineups.map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-16 text-sm text-muted-foreground">
+                Lineup {i + 1}
+              </span>
+              <Select
+                value={String(l.playersPerSide)}
+                onValueChange={(v) =>
+                  setLineups((ls) =>
+                    ls.map((x, idx) =>
+                      idx === i ? { playersPerSide: Number(v) } : x,
+                    ),
+                  )
+                }
+              >
+                <SelectTrigger className="flex-1" size="sm">
+                  <SelectValue>
+                    {(v) => (v === "1" ? "Singles" : "Doubles")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">Doubles</SelectItem>
+                  <SelectItem value="1">Singles</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove lineup ${i + 1}`}
+                disabled={lineups.length <= MIN_LINEUPS}
+                onClick={() =>
+                  setLineups((ls) => ls.filter((_, idx) => idx !== i))
+                }
+              >
+                <X className="text-muted-foreground" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() =>
+            setLineups((ls) => [...ls, { playersPerSide: 2 }])
+          }
+        >
+          Add lineup
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="division-start">Season start</Label>

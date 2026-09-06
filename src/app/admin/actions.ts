@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as mutations from "@/db/mutations";
 import { requireAdmin } from "@/lib/auth-guard";
-import { AGE_GROUPS, AREAS, GENDERS, RATING_TYPES } from "@/lib/constants";
+import {
+  AGE_GROUPS,
+  AREAS,
+  GENDERS,
+  MIN_LINEUPS,
+  RATING_TYPES,
+} from "@/lib/constants";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -113,6 +119,13 @@ function parseDivisionForm(formData: FormData) {
     return { error: "Season end can't be before season start." as const };
   }
 
+  const lineups = parseLineups(formData.get("lineups"));
+  if (!lineups) {
+    return {
+      error: `Add at least ${MIN_LINEUPS} lineups, each singles or doubles.` as const,
+    };
+  }
+
   return {
     data: {
       name,
@@ -120,11 +133,31 @@ function parseDivisionForm(formData: FormData) {
       ratingType: ratingType as (typeof RATING_TYPES)[number],
       gender: gender as (typeof GENDERS)[number],
       ageGroup,
+      lineups,
       status: parseStatus(formData),
       seasonStart,
       seasonEnd,
     },
   };
+}
+
+function parseLineups(
+  value: FormDataEntryValue | null,
+): { playersPerSide: number }[] | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(value ?? ""));
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(raw) || raw.length < MIN_LINEUPS) return null;
+  const lineups: { playersPerSide: number }[] = [];
+  for (const item of raw) {
+    const pps = (item as { playersPerSide?: unknown })?.playersPerSide;
+    if (pps !== 1 && pps !== 2) return null;
+    lineups.push({ playersPerSide: pps });
+  }
+  return lineups;
 }
 
 export async function createDivisionAction(

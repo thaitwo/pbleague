@@ -101,6 +101,7 @@ export type DivisionSummary = {
   ratingType: "single" | "combo";
   gender: "mens" | "womens" | "mixed";
   ageGroup: string;
+  lineups: { playersPerSide: number }[];
   status: "draft" | "active" | "completed";
   seasonStart: Date | null;
   seasonEnd: Date | null;
@@ -139,6 +140,7 @@ async function loadDivisionSummaries(
       ratingType: d.ratingType,
       gender: d.gender,
       ageGroup: d.ageGroup,
+      lineups: d.lineups,
       status: d.status,
       seasonStart: d.seasonStart,
       seasonEnd: d.seasonEnd,

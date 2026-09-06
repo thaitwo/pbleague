@@ -114,6 +114,7 @@ export default async function LeagueDetailPage({
                           ratingType: d.ratingType,
                           gender: d.gender,
                           ageGroup: d.ageGroup,
+                          lineups: d.lineups,
                           status: d.status,
                           seasonStart: toDateInput(d.seasonStart),
                           seasonEnd: toDateInput(d.seasonEnd),

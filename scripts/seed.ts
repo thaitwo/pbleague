@@ -73,6 +73,11 @@ async function main() {
       ratingType: f.ratingType ?? "single",
       gender: f.gender ?? "mixed",
       ageGroup: f.ageGroup ?? "18 & Over",
+      lineups: [
+        { playersPerSide: 2 },
+        { playersPerSide: 2 },
+        { playersPerSide: 2 },
+      ],
       status: f.status ?? "active",
       seasonStart: f.seasonStart ?? null,
       seasonEnd: f.seasonEnd ?? null,

@@ -20,6 +20,22 @@ export const GENDER_LABEL: Record<Gender, string> = {
 export const AGE_GROUPS = ["18 & Over", "40 & Over", "55 & Over"] as const;
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 
+// A match in a division is played as an ordered list of lineups; each lineup is
+// singles (1 player/side) or doubles (2/side). A team match needs at least 3.
+export type DivisionLineup = { playersPerSide: number };
+
+export const MIN_LINEUPS = 3;
+
+export const DEFAULT_LINEUPS: DivisionLineup[] = [
+  { playersPerSide: 2 },
+  { playersPerSide: 2 },
+  { playersPerSide: 2 },
+];
+
+export function lineupFormatLabel(playersPerSide: number): string {
+  return playersPerSide === 1 ? "Singles" : "Doubles";
+}
+
 /** Human-readable division name derived from its facets. */
 export function divisionDisplayName(d: {
   name?: string | null;

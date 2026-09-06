@@ -16,7 +16,9 @@
     "seed": "tsx scripts/seed.ts",
     "db:push:prod": "tsx scripts/db-push-prod.ts",
     "migrate:divisions": "tsx scripts/migrate-divisions.ts",
-    "migrate:divisions:prod": "tsx scripts/migrate-divisions-prod.ts"
+    "migrate:divisions:prod": "tsx scripts/migrate-divisions-prod.ts",
+    "migrate:lineups": "tsx scripts/migrate-lineups.ts",
+    "migrate:lineups:prod": "tsx scripts/migrate-lineups-prod.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

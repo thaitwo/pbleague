@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -135,6 +136,11 @@ export const divisions = pgTable("divisions", {
   ratingType: divisionRatingType("rating_type").notNull().default("single"),
   gender: divisionGender("gender").notNull().default("mixed"),
   ageGroup: text("age_group").notNull().default("18 & Over"),
+  // Ordered lineup template: each entry is a lineup slot (singles/doubles).
+  lineups: jsonb("lineups")
+    .$type<{ playersPerSide: number }[]>()
+    .notNull()
+    .default([{ playersPerSide: 2 }, { playersPerSide: 2 }, { playersPerSide: 2 }]),
   seasonStart: timestamp("season_start"),
   seasonEnd: timestamp("season_end"),
   status: leagueStatus("status").notNull().default("draft"),
