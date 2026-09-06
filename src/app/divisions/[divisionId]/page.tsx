@@ -133,10 +133,15 @@ export default async function DivisionStandingsPage({
                 <ul className="flex flex-col gap-2 text-sm">
                   {recent.map((m) => (
                     <li key={m.id} className="border-b pb-2 last:border-0">
-                      <div>{resultLine(m)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateTime(m.scheduledAt)}
-                      </div>
+                      <Link
+                        href={`/matches/${m.id}`}
+                        className="block hover:opacity-80"
+                      >
+                        <div>{resultLine(m)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateTime(m.scheduledAt)}
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -157,13 +162,18 @@ export default async function DivisionStandingsPage({
                 <ul className="flex flex-col gap-2 text-sm">
                   {upcoming.map((m) => (
                     <li key={m.id} className="border-b pb-2 last:border-0">
-                      <div>
-                        {m.homeTeamName} vs {m.awayTeamName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateTime(m.scheduledAt)}
-                        {m.location ? ` · ${m.location}` : ""}
-                      </div>
+                      <Link
+                        href={`/matches/${m.id}`}
+                        className="block hover:opacity-80"
+                      >
+                        <div>
+                          {m.homeTeamName} vs {m.awayTeamName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateTime(m.scheduledAt)}
+                          {m.location ? ` · ${m.location}` : ""}
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { MoreVertical } from "lucide-react";
@@ -174,7 +175,12 @@ export function ScheduleTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="max-w-[9rem] truncate font-medium">
-                  {m.opponentName}
+                  <Link
+                    href={`/matches/${m.matchId}`}
+                    className="hover:underline"
+                  >
+                    {m.opponentName}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   {m.status === "confirmed" ? (

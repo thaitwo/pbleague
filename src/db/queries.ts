@@ -576,6 +576,25 @@ export async function getMatch(matchId: string) {
   return match ?? null;
 }
 
+/** A single match with its lineups + division/league context — public detail. */
+export async function getMatchDetail(matchId: string) {
+  const [match] = await selectMatches(eq(matches.id, matchId));
+  if (!match) return null;
+  const [division] = await db
+    .select()
+    .from(divisions)
+    .where(eq(divisions.id, match.divisionId))
+    .limit(1);
+  const [league] = division
+    ? await db
+        .select()
+        .from(leagues)
+        .where(eq(leagues.id, division.leagueId))
+        .limit(1)
+    : [];
+  return { match, division, league };
+}
+
 /** Disputed matches across all divisions — for the admin console. */
 export async function getDisputedMatches(): Promise<MatchView[]> {
   return selectMatches(eq(matches.status, "disputed"));
