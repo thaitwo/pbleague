@@ -57,9 +57,9 @@ function lineupGamesWon(lu: MatchLineupView) {
   return { home, away };
 }
 
-function players(list: { name: string | null }[]) {
-  if (list.length === 0) return "—";
-  return list.map((p) => p.name ?? "—").join(" / ");
+function players(list: { name: string | null }[]): string[] {
+  if (list.length === 0) return ["—"];
+  return list.map((p) => p.name ?? "—");
 }
 
 export default async function MatchDetailPage({
@@ -153,12 +153,14 @@ export default async function MatchDetailPage({
                             : "text-muted-foreground"
                         }
                       >
-                        {players(lu.homePlayers)}
-                        {homeTook && (
-                          <Badge variant="outline" className="ml-2">
-                            Won
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-0.5">
+                            {players(lu.homePlayers).map((name, k) => (
+                              <span key={k}>{name}</span>
+                            ))}
+                          </div>
+                          {homeTook && <Badge variant="outline">Won</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell
                         className={
@@ -167,12 +169,14 @@ export default async function MatchDetailPage({
                             : "text-muted-foreground"
                         }
                       >
-                        {players(lu.awayPlayers)}
-                        {awayTook && (
-                          <Badge variant="outline" className="ml-2">
-                            Won
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-0.5">
+                            {players(lu.awayPlayers).map((name, k) => (
+                              <span key={k}>{name}</span>
+                            ))}
+                          </div>
+                          {awayTook && <Badge variant="outline">Won</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {scoreLine || "—"}
