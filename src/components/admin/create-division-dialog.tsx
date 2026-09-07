@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,12 +35,9 @@ export function CreateDivisionDialog({
       {trigger && (
         <DialogTrigger render={<Button size="sm">Add division</Button>} />
       )}
-      <DialogContent>
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>New division</DialogTitle>
-          <DialogDescription>
-            A rating flight — teams register into it and play a round-robin.
-          </DialogDescription>
         </DialogHeader>
         <DivisionForm
           action={createDivisionAction.bind(null, leagueId)}

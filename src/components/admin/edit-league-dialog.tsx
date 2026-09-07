@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -63,9 +62,6 @@ export function EditLeagueDialog({
       >
         <DialogHeader>
           <DialogTitle>League settings</DialogTitle>
-          <DialogDescription>
-            Update the name, level, season dates, or status.
-          </DialogDescription>
         </DialogHeader>
         <EditLeagueForm
           leagueId={leagueId}

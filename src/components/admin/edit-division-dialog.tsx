@@ -3,7 +3,6 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,12 +29,9 @@ export function EditDivisionDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Edit division</DialogTitle>
-          <DialogDescription>
-            Update the division’s facets, dates, or status.
-          </DialogDescription>
         </DialogHeader>
         <DivisionForm
           action={updateDivisionAction.bind(null, divisionId, leagueId)}
