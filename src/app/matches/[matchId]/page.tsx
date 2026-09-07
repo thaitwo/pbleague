@@ -6,6 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import {
   getMatchDetail,
@@ -13,7 +21,7 @@ import {
   type MatchLineupView,
   type MatchStatus,
 } from "@/db/queries";
-import { divisionDisplayName, lineupFormatLabel } from "@/lib/constants";
+import { divisionDisplayName } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
@@ -111,44 +119,69 @@ export default async function MatchDetailPage({
               No scores recorded yet.
             </p>
           ) : (
-            <div className="flex flex-col divide-y">
-              {match.lineups.map((lu) => {
-                const gw = lineupGamesWon(lu);
-                const homeTook = gw.home > gw.away;
-                const awayTook = gw.away > gw.home;
-                const scoreLine = lu.games
-                  .map((g) => `${g.homeScore}–${g.awayScore}`)
-                  .join(", ");
-                return (
-                  <div key={lu.id} className="flex flex-col gap-2 py-3">
-                    <div className="text-xs font-medium text-muted-foreground">
-                      Lineup {lu.position} · {lineupFormatLabel(lu.playersPerSide)}
-                    </div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Lineup</TableHead>
+                  <TableHead>{match.homeTeamName}</TableHead>
+                  <TableHead>{match.awayTeamName}</TableHead>
+                  <TableHead className="text-right">Winners Score</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {match.lineups.map((lu) => {
+                  const gw = lineupGamesWon(lu);
+                  const homeTook = gw.home > gw.away;
+                  const awayTook = gw.away > gw.home;
+                  // Winner-first so it matches the "Winners Score" column.
+                  const scoreLine = lu.games
+                    .map((g) =>
+                      homeTook
+                        ? `${g.homeScore}–${g.awayScore}`
+                        : `${g.awayScore}–${g.homeScore}`,
+                    )
+                    .join(", ");
+                  return (
+                    <TableRow key={lu.id}>
+                      <TableCell className="text-muted-foreground">
+                        Lineup {lu.position}
+                      </TableCell>
+                      <TableCell
                         className={
-                          homeTook ? "font-medium" : "text-muted-foreground"
+                          homeTook
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground"
                         }
                       >
                         {players(lu.homePlayers)}
-                      </div>
-                      <div className="text-center text-sm">
-                        <span className="font-medium">{scoreLine || "—"}</span>
-                      </div>
-                      <div
+                        {homeTook && (
+                          <Badge variant="outline" className="ml-2">
+                            Won
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell
                         className={
                           awayTook
-                            ? "text-right font-medium"
-                            : "text-right text-muted-foreground"
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground"
                         }
                       >
                         {players(lu.awayPlayers)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        {awayTook && (
+                          <Badge variant="outline" className="ml-2">
+                            Won
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {scoreLine || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

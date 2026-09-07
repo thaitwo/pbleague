@@ -192,7 +192,16 @@ export function ScheduleTable({
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {hasScore(m) ? `${m.myLineupsWon}–${m.oppLineupsWon}` : "—"}
+                  {hasScore(m) ? (
+                    <Link
+                      href={`/matches/${m.matchId}`}
+                      className="cursor-pointer font-medium text-foreground underline decoration-dotted underline-offset-4 hover:decoration-solid"
+                    >
+                      {m.myLineupsWon}–{m.oppLineupsWon}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{date}</TableCell>
                 <TableCell className="text-muted-foreground">{time}</TableCell>
