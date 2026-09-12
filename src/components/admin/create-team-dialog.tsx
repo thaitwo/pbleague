@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,10 +35,6 @@ export function CreateTeamDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New team</DialogTitle>
-          <DialogDescription>
-            Optionally set a captain by email — they&apos;ll be linked
-            automatically when they sign up.
-          </DialogDescription>
         </DialogHeader>
         <CreateTeamForm divisionId={divisionId} onCreated={() => setOpen(false)} />
       </DialogContent>

@@ -77,6 +77,9 @@ export function CreateTeamForm({ divisionId, onCreated }: CreateTeamFormProps) {
           type="email"
           placeholder="captain@example.com"
         />
+        <p className="text-xs text-muted-foreground">
+          Optional — they&apos;ll be linked automatically when they sign up.
+        </p>
       </div>
       <div className="-mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t bg-muted/50 p-4">
         <DialogClose
